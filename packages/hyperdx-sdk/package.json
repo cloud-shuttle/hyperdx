@@ -1,0 +1,73 @@
+{
+  "name": "@hyperdx/multi-tenant-sdk",
+  "version": "1.0.0",
+  "description": "Multi-tenant SDK for HyperDX integration with Next.js applications",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT",
+  "private": true,
+  "files": [
+    "dist/*",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "hyperdx",
+    "observability",
+    "logging",
+    "tracing",
+    "nextjs",
+    "multi-tenant"
+  ],
+  "scripts": {
+    "build": "tsc && cp package.json dist/",
+    "dev": "tsc --watch",
+    "lint": "npx eslint . --ext .ts",
+    "lint:fix": "npx eslint . --ext .ts --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.8.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.51.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.51.0",
+    "@opentelemetry/instrumentation": "^0.51.0",
+    "@opentelemetry/resources": "^1.23.0",
+    "@opentelemetry/sdk-logs": "^0.51.0",
+    "@opentelemetry/sdk-node": "^0.51.0",
+    "@opentelemetry/semantic-conventions": "^1.23.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.5.0",
+    "rimraf": "^5.0.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@types/react": ">=16.8.0",
+    "next": ">=13.0.0",
+    "react": ">=16.8.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./nextjs": {
+      "import": "./dist/nextjs.js",
+      "require": "./dist/nextjs.js",
+      "types": "./dist/nextjs.d.ts"
+    },
+    "./react": {
+      "import": "./dist/react.js",
+      "require": "./dist/react.js",
+      "types": "./dist/react.d.ts"
+    }
+  }
+}

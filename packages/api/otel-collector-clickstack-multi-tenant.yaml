@@ -1,0 +1,380 @@
+# Enhanced OTEL Collector Configuration for Multi-tenant HyperDX with ClickStack
+# This configuration extends the base multi-tenant config with ClickStack-specific features
+
+receivers:
+  # OTLP receiver for traces, metrics, and logs
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://localhost:*"
+            - "https://*.hyperdx.com"
+          allowed_headers:
+            - "*"
+
+  # HTTP receiver for direct log ingestion
+  httpd:
+    endpoint: 0.0.0.0:8080
+    path: /api/logs
+    cors:
+      allowed_origins:
+        - "http://localhost:*"
+        - "https://*.hyperdx.com"
+
+  # ClickStack-specific receiver for session replay data
+  httpd/clickstack:
+    endpoint: 0.0.0.0:8081
+    path: /api/clickstack/sessions
+    cors:
+      allowed_origins:
+        - "http://localhost:*"
+        - "https://*.hyperdx.com"
+
+processors:
+  # Batch processor for performance
+  batch:
+    timeout: 2s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    limit_mib: 512
+
+  # Resource processor to add tenant context
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: "${HYPERDX_ENVIRONMENT}"
+        action: insert
+      - key: service.version
+        value: "${HYPERDX_VERSION}"
+        action: insert
+
+  # Enhanced tenant extraction with ClickStack support
+  transform/tenant_extraction:
+    # Extract tenant from various sources
+    trace_statements:
+      - context: span
+        statements:
+          # Extract tenant_id from span attributes
+          - set(attributes["tenant_id"], attributes["tenant_id"]) where attributes["tenant_id"] != nil
+          # Extract from resource attributes if not in span
+          - set(attributes["tenant_id"], resource.attributes["tenant_id"]) where attributes["tenant_id"] == nil and resource.attributes["tenant_id"] != nil
+          # Extract from HTTP headers via resource
+          - set(attributes["tenant_id"], resource.attributes["http.request.header.x-tenant-id"]) where attributes["tenant_id"] == nil and resource.attributes["http.request.header.x-tenant-id"] != nil
+          # Set default tenant if none found (should be rare)
+          - set(attributes["tenant_id"], "unknown") where attributes["tenant_id"] == nil
+          # Validate tenant_id format (alphanumeric, hyphens, underscores only)
+          - delete_key(attributes, "tenant_id") where not IsMatch(attributes["tenant_id"], "^[a-zA-Z0-9_-]+$")
+          - set(attributes["tenant_id"], "invalid") where attributes["tenant_id"] == nil
+    
+    metric_statements:
+      - context: metric
+        statements:
+          # Extract tenant from metric attributes
+          - set(attributes["tenant_id"], attributes["tenant_id"]) where attributes["tenant_id"] != nil
+          - set(attributes["tenant_id"], resource.attributes["tenant_id"]) where attributes["tenant_id"] == nil and resource.attributes["tenant_id"] != nil
+          - set(attributes["tenant_id"], "unknown") where attributes["tenant_id"] == nil
+          # Validate tenant_id
+          - delete_key(attributes, "tenant_id") where not IsMatch(attributes["tenant_id"], "^[a-zA-Z0-9_-]+$")
+          - set(attributes["tenant_id"], "invalid") where attributes["tenant_id"] == nil
+    
+    log_statements:
+      - context: log
+        statements:
+          # Extract tenant from log attributes
+          - set(attributes["tenant_id"], attributes["tenant_id"]) where attributes["tenant_id"] != nil
+          - set(attributes["tenant_id"], resource.attributes["tenant_id"]) where attributes["tenant_id"] == nil and resource.attributes["tenant_id"] != nil
+          - set(attributes["tenant_id"], body["tenant_id"]) where attributes["tenant_id"] == nil and IsString(body) == false and body["tenant_id"] != nil
+          - set(attributes["tenant_id"], "unknown") where attributes["tenant_id"] == nil
+          # Validate tenant_id
+          - delete_key(attributes, "tenant_id") where not IsMatch(attributes["tenant_id"], "^[a-zA-Z0-9_-]+$")
+          - set(attributes["tenant_id"], "invalid") where attributes["tenant_id"] == nil
+
+  # ClickStack-specific tenant enrichment
+  transform/clickstack_tenant:
+    log_statements:
+      - context: log
+        statements:
+          # Ensure tenant_id is always present
+          - set(attributes["tenant_id"], attributes["tenant_id"]) where attributes["tenant_id"] != nil
+          - set(attributes["tenant_id"], "default") where attributes["tenant_id"] == nil
+          # Add ClickStack-specific fields
+          - set(attributes["clickstack_version"], "1.0")
+          - set(attributes["data_source"], "clickstack")
+          # Extract session replay data if present
+          - set(attributes["session_replay_data"], body["session_replay"]) where IsMap(body) and body["session_replay"] != nil
+          # Add correlation IDs for ClickStack features
+          - set(attributes["clickstack_correlation_id"], attributes["trace_id"]) where attributes["trace_id"] != nil
+          # Extract pattern recognition data
+          - set(attributes["clickstack_pattern"], body["pattern"]) where IsMap(body) and body["pattern"] != nil
+          # Extract event delta data
+          - set(attributes["clickstack_baseline"], body["baseline"]) where IsMap(body) and body["baseline"] != nil
+          - set(attributes["clickstack_current"], body["current"]) where IsMap(body) and body["current"] != nil
+          - set(attributes["clickstack_delta_percent"], body["delta_percent"]) where IsMap(body) and body["delta_percent"] != nil
+
+    trace_statements:
+      - context: span
+        statements:
+          # Ensure tenant_id is always present
+          - set(attributes["tenant_id"], attributes["tenant_id"]) where attributes["tenant_id"] != nil
+          - set(attributes["tenant_id"], "default") where attributes["tenant_id"] == nil
+          # Add ClickStack-specific fields
+          - set(attributes["clickstack_version"], "1.0")
+          - set(attributes["data_source"], "clickstack")
+          # Add correlation IDs for ClickStack features
+          - set(attributes["clickstack_correlation_id"], attributes["trace_id"]) where attributes["trace_id"] != nil
+
+    metric_statements:
+      - context: metric
+        statements:
+          # Ensure tenant_id is always present
+          - set(attributes["tenant_id"], attributes["tenant_id"]) where attributes["tenant_id"] != nil
+          - set(attributes["tenant_id"], "default") where attributes["tenant_id"] == nil
+          # Add ClickStack-specific fields
+          - set(attributes["clickstack_version"], "1.0")
+          - set(attributes["data_source"], "clickstack")
+
+  # ClickStack-specific enrichment
+  transform/clickstack_enrichment:
+    log_statements:
+      - context: log
+        statements:
+          # Add ClickStack-specific enrichment
+          - set(attributes["clickstack_ingestion_time"], Now())
+          - set(attributes["clickstack_pipeline_version"], "1.0")
+          # Add tenant-specific metadata
+          - set(attributes["tenant_metadata"], map("tenant_id", attributes["tenant_id"], "clickstack_enabled", "true"))
+          # Extract user session information
+          - set(attributes["clickstack_user_id"], body["user_id"]) where IsMap(body) and body["user_id"] != nil
+          - set(attributes["clickstack_session_id"], body["session_id"]) where IsMap(body) and body["session_id"] != nil
+          - set(attributes["clickstack_page_url"], body["page_url"]) where IsMap(body) and body["page_url"] != nil
+          # Extract viewport and device information
+          - set(attributes["clickstack_viewport"], body["viewport"]) where IsMap(body) and body["viewport"] != nil
+          - set(attributes["clickstack_user_agent"], body["user_agent"]) where IsMap(body) and body["user_agent"] != nil
+          # Extract ClickStack events
+          - set(attributes["clickstack_events"], body["events"]) where IsMap(body) and body["events"] != nil
+
+    trace_statements:
+      - context: span
+        statements:
+          # Add ClickStack-specific enrichment
+          - set(attributes["clickstack_ingestion_time"], Now())
+          - set(attributes["clickstack_pipeline_version"], "1.0")
+          # Add tenant-specific metadata
+          - set(attributes["tenant_metadata"], map("tenant_id", attributes["tenant_id"], "clickstack_enabled", "true"))
+
+    metric_statements:
+      - context: metric
+        statements:
+          # Add ClickStack-specific enrichment
+          - set(attributes["clickstack_ingestion_time"], Now())
+          - set(attributes["clickstack_pipeline_version"], "1.0")
+          # Add tenant-specific metadata
+          - set(attributes["tenant_metadata"], map("tenant_id", attributes["tenant_id"], "clickstack_enabled", "true"))
+
+  # ClickStack-specific validation
+  filter/clickstack_validation:
+    traces:
+      span:
+        # Drop spans with invalid tenant IDs or missing ClickStack data
+        - 'attributes["tenant_id"] == "invalid"'
+        - 'attributes["clickstack_version"] == nil'
+    metrics:
+      metric:
+        # Drop metrics with invalid tenant IDs or missing ClickStack data
+        - 'attributes["tenant_id"] == "invalid"'
+        - 'attributes["clickstack_version"] == nil'
+    logs:
+      log_record:
+        # Drop logs with invalid tenant IDs or missing ClickStack data
+        - 'attributes["tenant_id"] == "invalid"'
+        - 'attributes["clickstack_version"] == nil'
+
+  # Filter processor to drop invalid data (existing)
+  filter/tenant_validation:
+    traces:
+      span:
+        # Drop spans with invalid tenant IDs
+        - 'attributes["tenant_id"] == "invalid"'
+    metrics:
+      metric:
+        # Drop metrics with invalid tenant IDs
+        - 'attributes["tenant_id"] == "invalid"'
+    logs:
+      log_record:
+        # Drop logs with invalid tenant IDs
+        - 'attributes["tenant_id"] == "invalid"'
+
+  # Resource detection
+  resourcedetection:
+    detectors: [env, system, docker]
+    timeout: 5s
+
+  # Enhanced attributes processor for ClickStack data enrichment
+  attributes/enrichment:
+    actions:
+      # Add collection timestamp
+      - key: collection_time
+        value: "${OTEL_TIMESTAMP}"
+        action: insert
+      # Add collector version
+      - key: collector.version
+        value: "${OTEL_COLLECTOR_VERSION}"
+        action: insert
+      # Add data source tag
+      - key: data_source
+        value: "clickstack_otel_collector"
+        action: insert
+      # Add ClickStack collector identifier
+      - key: clickstack_collector_id
+        value: "${HOSTNAME}"
+        action: insert
+
+exporters:
+  # ClickHouse exporter for traces
+  clickhouse/traces:
+    endpoint: "${CLICKHOUSE_ENDPOINT}"
+    username: "${CLICKHOUSE_USERNAME}"
+    password: "${CLICKHOUSE_PASSWORD}"
+    database: "${CLICKHOUSE_DATABASE}"
+    table: "traces"
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    sending_queue:
+      enabled: true
+      num_consumers: 8
+      queue_size: 1000
+
+  # ClickHouse exporter for logs
+  clickhouse/logs:
+    endpoint: "${CLICKHOUSE_ENDPOINT}"
+    username: "${CLICKHOUSE_USERNAME}"
+    password: "${CLICKHOUSE_PASSWORD}"
+    database: "${CLICKHOUSE_DATABASE}"
+    table: "logs"
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    sending_queue:
+      enabled: true
+      num_consumers: 8
+      queue_size: 1000
+
+  # ClickHouse exporter for metrics
+  clickhouse/metrics:
+    endpoint: "${CLICKHOUSE_ENDPOINT}"
+    username: "${CLICKHOUSE_USERNAME}"
+    password: "${CLICKHOUSE_PASSWORD}"
+    database: "${CLICKHOUSE_DATABASE}"
+    table: "metric_stream"
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    sending_queue:
+      enabled: true
+      num_consumers: 8
+      queue_size: 1000
+
+  # Debug exporter for development
+  debug:
+    verbosity: normal
+
+  # Prometheus metrics for collector monitoring
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    resource_to_telemetry_conversion:
+      enabled: true
+
+extensions:
+  # Health check
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+  # Performance profiler
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+  # Memory ballast for stability
+  memory_ballast:
+    size_mib: 64
+
+service:
+  extensions: [health_check, pprof, memory_ballast]
+
+  pipelines:
+    # Traces pipeline with ClickStack enhancements
+    traces:
+      receivers: [otlp]
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - transform/tenant_extraction
+        - transform/clickstack_tenant
+        - transform/clickstack_enrichment
+        - filter/tenant_validation
+        - filter/clickstack_validation
+        - resource
+        - attributes/enrichment
+        - batch
+      exporters: [clickhouse/traces]
+
+    # Metrics pipeline with ClickStack enhancements
+    metrics:
+      receivers: [otlp, prometheus]
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - transform/tenant_extraction
+        - transform/clickstack_tenant
+        - transform/clickstack_enrichment
+        - filter/tenant_validation
+        - filter/clickstack_validation
+        - resource
+        - attributes/enrichment
+        - batch
+      exporters: [clickhouse/metrics]
+
+    # Logs pipeline with ClickStack enhancements
+    logs:
+      receivers: [otlp, httpd, httpd/clickstack]
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - transform/tenant_extraction
+        - transform/clickstack_tenant
+        - transform/clickstack_enrichment
+        - filter/tenant_validation
+        - filter/clickstack_validation
+        - resource
+        - attributes/enrichment
+        - batch
+      exporters: [clickhouse/logs]
+
+  # Telemetry for the collector itself
+  telemetry:
+    logs:
+      level: "info"
+    metrics:
+      level: "basic"
+      readers:
+        - periodic:
+            interval: 30s
+            exporter:
+              prometheus:
+                endpoint: "0.0.0.0:8888"

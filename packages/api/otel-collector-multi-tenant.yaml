@@ -1,0 +1,258 @@
+# OTEL Collector Configuration for Multi-tenant HyperDX
+# This configuration handles tenant isolation and data enrichment
+
+receivers:
+  # OTLP receiver for traces, metrics, and logs
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://localhost:*"
+            - "https://*.hyperdx.com"
+          allowed_headers:
+            - "*"
+
+  # HTTP receiver for direct log ingestion
+  httpd:
+    endpoint: 0.0.0.0:8080
+    path: /api/logs
+    cors:
+      allowed_origins:
+        - "http://localhost:*"
+        - "https://*.hyperdx.com"
+
+processors:
+  # Batch processor for performance
+  batch:
+    timeout: 2s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    limit_mib: 512
+
+  # Resource processor to add tenant context
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: "${HYPERDX_ENVIRONMENT}"
+        action: insert
+      - key: service.version
+        value: "${HYPERDX_VERSION}"
+        action: insert
+
+  # Transform processor for tenant extraction and validation
+  transform/tenant_extraction:
+    # Extract tenant from various sources
+    trace_statements:
+      - context: span
+        statements:
+          # Extract tenant_id from span attributes
+          - set(attributes["tenant_id"], attributes["tenant_id"]) where attributes["tenant_id"] != nil
+          # Extract from resource attributes if not in span
+          - set(attributes["tenant_id"], resource.attributes["tenant_id"]) where attributes["tenant_id"] == nil and resource.attributes["tenant_id"] != nil
+          # Extract from HTTP headers via resource
+          - set(attributes["tenant_id"], resource.attributes["http.request.header.x-tenant-id"]) where attributes["tenant_id"] == nil and resource.attributes["http.request.header.x-tenant-id"] != nil
+          # Set default tenant if none found (should be rare)
+          - set(attributes["tenant_id"], "unknown") where attributes["tenant_id"] == nil
+          # Validate tenant_id format (alphanumeric, hyphens, underscores only)
+          - delete_key(attributes, "tenant_id") where not IsMatch(attributes["tenant_id"], "^[a-zA-Z0-9_-]+$")
+          - set(attributes["tenant_id"], "invalid") where attributes["tenant_id"] == nil
+    
+    metric_statements:
+      - context: metric
+        statements:
+          # Extract tenant from metric attributes
+          - set(attributes["tenant_id"], attributes["tenant_id"]) where attributes["tenant_id"] != nil
+          - set(attributes["tenant_id"], resource.attributes["tenant_id"]) where attributes["tenant_id"] == nil and resource.attributes["tenant_id"] != nil
+          - set(attributes["tenant_id"], "unknown") where attributes["tenant_id"] == nil
+          # Validate tenant_id
+          - delete_key(attributes, "tenant_id") where not IsMatch(attributes["tenant_id"], "^[a-zA-Z0-9_-]+$")
+          - set(attributes["tenant_id"], "invalid") where attributes["tenant_id"] == nil
+    
+    log_statements:
+      - context: log
+        statements:
+          # Extract tenant from log attributes
+          - set(attributes["tenant_id"], attributes["tenant_id"]) where attributes["tenant_id"] != nil
+          - set(attributes["tenant_id"], resource.attributes["tenant_id"]) where attributes["tenant_id"] == nil and resource.attributes["tenant_id"] != nil
+          - set(attributes["tenant_id"], body["tenant_id"]) where attributes["tenant_id"] == nil and IsString(body) == false and body["tenant_id"] != nil
+          - set(attributes["tenant_id"], "unknown") where attributes["tenant_id"] == nil
+          # Validate tenant_id
+          - delete_key(attributes, "tenant_id") where not IsMatch(attributes["tenant_id"], "^[a-zA-Z0-9_-]+$")
+          - set(attributes["tenant_id"], "invalid") where attributes["tenant_id"] == nil
+
+  # Filter processor to drop invalid data
+  filter/tenant_validation:
+    traces:
+      span:
+        # Drop spans with invalid tenant IDs
+        - 'attributes["tenant_id"] == "invalid"'
+    metrics:
+      metric:
+        # Drop metrics with invalid tenant IDs
+        - 'attributes["tenant_id"] == "invalid"'
+    logs:
+      log_record:
+        # Drop logs with invalid tenant IDs
+        - 'attributes["tenant_id"] == "invalid"'
+
+  # Resource detection
+  resourcedetection:
+    detectors: [env, system, docker]
+    timeout: 5s
+
+  # Attributes processor for data enrichment
+  attributes/enrichment:
+    actions:
+      # Add collection timestamp
+      - key: collection_time
+        value: "${OTEL_TIMESTAMP}"
+        action: insert
+      # Add collector version
+      - key: collector.version
+        value: "${OTEL_COLLECTOR_VERSION}"
+        action: insert
+      # Add data source tag
+      - key: data_source
+        value: "otel_collector"
+        action: insert
+
+exporters:
+  # ClickHouse exporter for traces
+  clickhouse/traces:
+    endpoint: "${CLICKHOUSE_ENDPOINT}"
+    username: "${CLICKHOUSE_USERNAME}"
+    password: "${CLICKHOUSE_PASSWORD}"
+    database: "${CLICKHOUSE_DATABASE}"
+    table: "traces"
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    sending_queue:
+      enabled: true
+      num_consumers: 8
+      queue_size: 1000
+
+  # ClickHouse exporter for logs
+  clickhouse/logs:
+    endpoint: "${CLICKHOUSE_ENDPOINT}"
+    username: "${CLICKHOUSE_USERNAME}"
+    password: "${CLICKHOUSE_PASSWORD}"
+    database: "${CLICKHOUSE_DATABASE}"
+    table: "logs"
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    sending_queue:
+      enabled: true
+      num_consumers: 8
+      queue_size: 1000
+
+  # ClickHouse exporter for metrics
+  clickhouse/metrics:
+    endpoint: "${CLICKHOUSE_ENDPOINT}"
+    username: "${CLICKHOUSE_USERNAME}"
+    password: "${CLICKHOUSE_PASSWORD}"
+    database: "${CLICKHOUSE_DATABASE}"
+    table: "metric_stream"
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    sending_queue:
+      enabled: true
+      num_consumers: 8
+      queue_size: 1000
+
+  # Debug exporter for development
+  debug:
+    verbosity: normal
+
+  # Prometheus metrics for collector monitoring
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    resource_to_telemetry_conversion:
+      enabled: true
+
+extensions:
+  # Health check
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+  # Performance profiler
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+  # Memory ballast for stability
+  memory_ballast:
+    size_mib: 64
+
+service:
+  extensions: [health_check, pprof, memory_ballast]
+
+  pipelines:
+    # Traces pipeline
+    traces:
+      receivers: [otlp]
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - transform/tenant_extraction
+        - filter/tenant_validation
+        - resource
+        - attributes/enrichment
+        - batch
+      exporters: [clickhouse/traces]
+
+    # Metrics pipeline
+    metrics:
+      receivers: [otlp, prometheus]
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - transform/tenant_extraction
+        - filter/tenant_validation
+        - resource
+        - attributes/enrichment
+        - batch
+      exporters: [clickhouse/metrics]
+
+    # Logs pipeline
+    logs:
+      receivers: [otlp, httpd]
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - transform/tenant_extraction
+        - filter/tenant_validation
+        - resource
+        - attributes/enrichment
+        - batch
+      exporters: [clickhouse/logs]
+
+  # Telemetry for the collector itself
+  telemetry:
+    logs:
+      level: "info"
+    metrics:
+      level: "basic"
+      readers:
+        - periodic:
+            interval: 30s
+            exporter:
+              prometheus:
+                endpoint: "0.0.0.0:8888"
