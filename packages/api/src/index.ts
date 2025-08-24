@@ -4,7 +4,6 @@ import { MeterProvider, MetricReader } from '@opentelemetry/sdk-metrics';
 import { serializeError } from 'serialize-error';
 
 import * as config from '@/config';
-import Server from '@/server';
 import { isOperationalError } from '@/utils/errors';
 import logger from '@/utils/logger';
 
@@ -18,7 +17,8 @@ if (config.IS_DEV) {
   hostMetrics.start();
 }
 
-const server = new Server();
+// Import the server directly (it's now a self-executing module)
+import '@/server';
 
 process.on('uncaughtException', (err: Error) => {
   logger.error(serializeError(err));
@@ -34,5 +34,3 @@ process.on('unhandledRejection', (err: any) => {
   // TODO: do we want to throw here ?
   logger.error(serializeError(err));
 });
-
-server.start().catch(e => logger.error(serializeError(e)));

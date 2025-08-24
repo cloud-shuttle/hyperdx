@@ -1,85 +1,98 @@
-import http from 'http';
-import gracefulShutdown from 'http-graceful-shutdown';
-import { serializeError } from 'serialize-error';
-
-import app from '@/api-app';
-import * as config from '@/config';
+import 'reflect-metadata';
+import express from 'express';
+import compression from 'compression';
+import session from 'express-session';
+import cors from 'cors';
+import { connectPostgres, disconnectPostgres } from '@/database/postgres';
 import { connectDB, mongooseConnection } from '@/models';
-import opampApp from '@/opamp/app';
+import * as config from '@/config';
 import logger from '@/utils/logger';
+import gracefulShutdown from 'http-graceful-shutdown';
+import { createServer } from 'http';
 
-export default class Server {
-  protected shouldHandleGracefulShutdown = true;
+import apiApp from './api-app';
 
-  protected appServer!: http.Server;
-  protected opampServer!: http.Server;
+const app = express();
+const server = createServer(app);
 
-  private createAppServer() {
-    return http.createServer(app);
-  }
+// Middleware
+app.use(compression());
+app.use(cors({
+  origin: config.FRONTEND_URL,
+  credentials: true,
+}));
 
-  private createOpampServer() {
-    return http.createServer(opampApp);
-  }
+// Session configuration
+app.use(session({
+  secret: config.EXPRESS_SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: config.IS_PROD,
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
+}));
 
-  protected async shutdown(signal?: string) {
-    let hasError = false;
-    logger.info('Closing all db clients...');
-    const [mongoCloseResult] = await Promise.allSettled([
-      mongooseConnection.close(false),
-    ]);
+// API routes
+app.use('/api', apiApp);
 
-    if (mongoCloseResult.status === 'rejected') {
-      hasError = true;
-      logger.error(serializeError(mongoCloseResult.reason));
-    } else {
-      logger.info('MongoDB client closed.');
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Graceful shutdown
+gracefulShutdown(server, {
+  signals: 'SIGINT SIGTERM',
+  timeout: 10000,
+  development: config.IS_DEV,
+  onShutdown: async () => {
+    logger.info('🔄 Shutting down gracefully...');
+    
+    // Close PostgreSQL connection
+    try {
+      await disconnectPostgres();
+    } catch (error) {
+      logger.error('Error closing PostgreSQL connection:', error);
     }
-
-    if (hasError) {
-      throw new Error('Failed to close all clients.');
+    
+    // Close MongoDB connection (for backward compatibility)
+    try {
+      await mongooseConnection.close(false);
+    } catch (error) {
+      logger.error('Error closing MongoDB connection:', error);
     }
-  }
+    
+    logger.info('✅ Graceful shutdown completed');
+  },
+  finally: () => {
+    logger.info('👋 Server stopped');
+    process.exit(0);
+  },
+});
 
-  async start() {
-    this.appServer = this.createAppServer();
-    this.appServer.keepAliveTimeout = 61000; // Ensure all inactive connections are terminated by the ALB, by setting this a few seconds higher than the ALB idle timeout
-    this.appServer.headersTimeout = 62000; // Ensure the headersTimeout is set higher than the keepAliveTimeout due to this nodejs regression bug: https://github.com/nodejs/node/issues/27363
-
-    this.opampServer = this.createOpampServer();
-    this.opampServer.keepAliveTimeout = 61000;
-    this.opampServer.headersTimeout = 62000;
-
-    this.appServer.listen(config.PORT, () => {
-      logger.info(
-        `API Server listening on port ${config.PORT}, NODE_ENV=${process.env.NODE_ENV}`,
-      );
+// Start server
+const startServer = async () => {
+  try {
+    // Connect to PostgreSQL
+    await connectPostgres();
+    
+    // Connect to MongoDB (for backward compatibility during migration)
+    if (config.MONGO_URI) {
+      await connectDB();
+    }
+    
+    const port = config.PORT || 3001;
+    server.listen(port, () => {
+      logger.info(`🚀 Server running on port ${port}`);
+      logger.info(`📊 Environment: ${config.NODE_ENV}`);
+      logger.info(`🔗 Frontend URL: ${config.FRONTEND_URL}`);
     });
-
-    this.opampServer.listen(config.OPAMP_PORT, () => {
-      logger.info(
-        `OpAMP Server listening on port ${config.OPAMP_PORT}, NODE_ENV=${process.env.NODE_ENV}`,
-      );
-    });
-
-    if (this.shouldHandleGracefulShutdown) {
-      [this.appServer, this.opampServer].forEach(server => {
-        gracefulShutdown(server, {
-          signals: 'SIGINT SIGTERM',
-          timeout: 10000, // 10 secs
-          development: config.IS_DEV,
-          forceExit: true, // triggers process.exit() at the end of shutdown process
-          preShutdown: async () => {
-            // needed operation before httpConnections are shutted down
-          },
-          onShutdown: this.shutdown,
-          finally: () => {
-            logger.info('Server gracefully shut down...');
-          }, // finally function (sync) - e.g. for logging
-        });
-      });
-    }
-
-    await connectDB();
+  } catch (error) {
+    logger.error('❌ Failed to start server:', error);
+    process.exit(1);
   }
-}
+};
+
+startServer();

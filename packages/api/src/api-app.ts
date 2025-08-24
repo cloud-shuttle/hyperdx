@@ -30,7 +30,7 @@ const sess: session.SessionOptions & { cookie: session.CookieOptions } = {
     maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
   },
   rolling: true,
-  store: new MongoStore({ mongoUrl: config.MONGO_URI }),
+  store: undefined, // Use memory store for now, will implement PostgreSQL session store later
 };
 
 app.set('trust proxy', 1);
@@ -84,6 +84,8 @@ app.use('/', routers.rootRouter);
 
 // PRIVATE ROUTES
 app.use('/alerts', isUserAuthenticated, routers.alertsRouter);
+app.use('/clickstack', isUserAuthenticated, routers.clickstackRouter);
+app.use('/deployment', isUserAuthenticated, routers.deploymentRouter);
 app.use('/dashboards', isUserAuthenticated, routers.dashboardRouter);
 app.use('/me', isUserAuthenticated, routers.meRouter);
 app.use('/team', isUserAuthenticated, routers.teamRouter);

@@ -714,6 +714,12 @@ export default function AppNav({ fixed = false }: { fixed?: boolean }) {
               />
 
               <AppNavLink
+                label="ClickStack"
+                href="/clickstack"
+                iconName="bi-stack"
+              />
+
+              <AppNavLink
                 label="Dashboards"
                 href="/dashboards"
                 iconName="bi-grid-1x2"

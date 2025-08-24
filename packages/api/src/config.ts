@@ -3,7 +3,7 @@ const env = process.env;
 // DEFAULTS
 const DEFAULT_APP_TYPE = 'api';
 const DEFAULT_EXPRESS_SESSION = 'hyperdx is cool 👋';
-const DEFAULT_FRONTEND_URL = `http://localhost:${env.HYPERDX_APP_PORT}`;
+const DEFAULT_FRONTEND_URL = `http://localhost:${env.HYPERDX_APP_PORT || '3000'}`;
 
 export const NODE_ENV = env.NODE_ENV as string;
 
@@ -41,3 +41,15 @@ export const DEFAULT_SOURCES = env.DEFAULT_SOURCES;
 export const CLICKHOUSE_HOST = env.CLICKHOUSE_HOST as string;
 export const CLICKHOUSE_USER = env.CLICKHOUSE_USER as string;
 export const CLICKHOUSE_PASSWORD = env.CLICKHOUSE_PASSWORD as string;
+
+// PostgreSQL Configuration (replacing MongoDB)
+export const POSTGRES_HOST = env.POSTGRES_HOST || 'localhost';
+export const POSTGRES_PORT = Number.parseInt(env.POSTGRES_PORT || '5432');
+export const POSTGRES_USER = env.POSTGRES_USER || 'hyperdx';
+export const POSTGRES_PASSWORD = env.POSTGRES_PASSWORD || 'hyperdx';
+export const POSTGRES_DATABASE = env.POSTGRES_DATABASE || 'hyperdx';
+export const POSTGRES_SSL = env.POSTGRES_SSL === 'true';
+
+// PostgreSQL connection string
+export const POSTGRES_URI = env.POSTGRES_URI || 
+  `postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}`;
