@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+import { clickStackPerformanceService } from './ClickStackPerformanceService';
 import { Switch } from '@/components/ui/switch';
 import { 
   Activity, 
@@ -20,7 +21,6 @@ import {
   Pause,
   BarChart3,
   Cpu,
-  Memory,
   HardDrive,
   Network,
   Gauge,
@@ -84,15 +84,15 @@ export const ClickStackPerformanceMonitor: React.FC<ClickStackPerformanceMonitor
         clickStackPerformanceService.getConfig()
       ]);
 
-      setPerformanceMetrics(metrics);
+      setPerformanceMetrics([metrics]);
       setCacheStats(stats);
       setConfig(currentConfig);
 
       // Check for performance alerts
-      checkPerformanceAlerts(metrics, stats);
+      checkPerformanceAlerts([metrics], stats);
       
       // Generate optimization recommendations
-      generateRecommendations(metrics, stats, currentConfig);
+      generateRecommendations([metrics], stats, currentConfig);
 
     } catch (error) {
       console.error('Failed to fetch performance data:', error);
@@ -410,7 +410,7 @@ export const ClickStackPerformanceMonitor: React.FC<ClickStackPerformanceMonitor
             <CardContent className="p-4">
               <div className="flex items-center">
                 <div className="p-2 bg-purple-100 rounded-lg">
-                  <Memory className="h-6 w-6 text-purple-600" />
+                  <Cpu className="h-6 w-6 text-purple-600" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Memory Usage</p>

@@ -1,6 +1,20 @@
 import { useCallback, useMemo, useState } from 'react';
 import { sq } from 'date-fns/locale';
-import ms from 'ms';
+// Simple ms implementation
+const ms = (str: string): number => {
+  const match = str.match(/^(\d+)([smhdwy])$/);
+  if (!match) return 0;
+  const [, num, unit] = match;
+  const multipliers: Record<string, number> = {
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+    w: 7 * 24 * 60 * 60 * 1000,
+    y: 365 * 24 * 60 * 60 * 1000
+  };
+  return parseInt(num) * (multipliers[unit] || 0);
+};
 import { parseAsString, useQueryState } from 'nuqs';
 import { useForm } from 'react-hook-form';
 import { tcFromSource } from '@hyperdx/common-utils/dist/metadata';
@@ -309,7 +323,7 @@ export default function ContextSubpanel({
                 </Badge>
               )}
               <Badge size="md" variant="default">
-                Time range: ±{ms(range / 2)}
+                Time range: ±{ms(String(range / 2))}
               </Badge>
             </div>
           </Group>

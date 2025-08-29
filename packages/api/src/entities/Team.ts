@@ -14,13 +14,13 @@ import { User } from './User';
 @Index(['name'])
 export class Team {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
-  tenantId: string;
+  tenantId!: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   tenantName?: string;
@@ -32,24 +32,27 @@ export class Team {
   hookId?: string;
 
   @Column({ type: 'boolean', default: false })
-  collectorAuthenticationEnforced: boolean;
+  collectorAuthenticationEnforced!: boolean;
+
+  @Column({ type: 'boolean', default: true })
+  isActive!: boolean;
 
   // Tenant-specific settings
   @Column({ type: 'integer', default: 30 })
-  dataRetentionDays: number;
+  dataRetentionDays!: number;
 
   @Column({ type: 'integer', default: 10 })
-  maxUsersPerTenant: number;
+  maxUsersPerTenant!: number;
 
   @Column({ type: 'integer', default: 10000 })
-  allowedIngestionRate: number; // logs per minute
+  allowedIngestionRate!: number; // logs per minute
 
   @Column({ type: 'integer', default: 10 })
-  storageQuotaGB: number;
+  storageQuotaGB!: number;
 
   // Feature flags
   @Column({ type: 'jsonb', default: {} })
-  featuresEnabled: {
+  featuresEnabled!: {
     alerting?: boolean;
     dashboards?: boolean;
     sessionReplay?: boolean;
@@ -64,11 +67,11 @@ export class Team {
   searchRowLimit?: number;
 
   @Column({ type: 'boolean', default: false })
-  fieldMetadataDisabled: boolean;
+  fieldMetadataDisabled!: boolean;
 
   // ClickStack settings
   @Column({ type: 'jsonb', default: {} })
-  clickstackSettings: {
+  clickstackSettings!: {
     sessionReplay?: {
       enabled?: boolean;
       version?: string;
@@ -89,13 +92,13 @@ export class Team {
 
   // Relationships
   @OneToMany(() => User, user => user.team)
-  users: User[];
+  users!: User[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // Helper methods
   toJSON() {

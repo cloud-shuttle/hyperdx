@@ -520,7 +520,7 @@ router.post(
       if (!teamId) {
         return res.status(403).send({ error: 'Team context missing' });
       }
-      const team = await getTeam(teamId);
+      const team = await getTeam(teamId.toString());
       if (!team) {
         return res.status(403).send({ error: 'Team not found' });
       }

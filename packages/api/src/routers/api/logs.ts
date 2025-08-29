@@ -1,8 +1,8 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import { validateRequest } from 'zod-express-middleware';
 
-import { tenantMiddleware, TenantRequest } from '@/middleware/tenant';
+import { setTenantContext, requireTenantContext } from '@/middleware/tenant';
 import { 
   executeTenantsQuery, 
   TenantQueryBuilder,
@@ -18,7 +18,8 @@ import logger from '@/utils/logger';
 const router = express.Router();
 
 // Apply tenant middleware to all routes
-router.use(tenantMiddleware);
+router.use(setTenantContext);
+router.use(requireTenantContext);
 
 // Schema for log query parameters
 const logQuerySchema = z.object({
@@ -39,7 +40,7 @@ router.get(
   validateRequest({
     query: logQuerySchema
   }),
-  async (req: TenantRequest, res) => {
+  async (req: any, res: Response) => {
     try {
       const {
         q,
@@ -53,6 +54,17 @@ router.get(
         orderDirection
       } = req.query;
 
+      // Type conversion and validation
+      const parsedLimit = typeof limit === 'string' ? parseInt(limit, 10) : (Array.isArray(limit) ? parseInt(limit[0] as string, 10) : 100);
+      const parsedOffset = typeof offset === 'string' ? parseInt(offset, 10) : (Array.isArray(offset) ? parseInt(offset[0] as string, 10) : 0);
+      const parsedStartDate = typeof startDate === 'string' ? startDate : undefined;
+      const parsedEndDate = typeof endDate === 'string' ? endDate : undefined;
+      const parsedOrderBy = typeof orderBy === 'string' ? orderBy : undefined;
+      const parsedOrderDirection = typeof orderDirection === 'string' ? orderDirection : undefined;
+      const parsedQ = typeof q === 'string' ? q : undefined;
+      const parsedLevel = Array.isArray(level) ? level : (level ? [level] : []);
+      const parsedService = Array.isArray(service) ? service : (service ? [service] : []);
+
       // Check tenant permissions
       if (!checkTenantFeature(req, 'dashboards')) {
         return res.status(403).json({
@@ -63,27 +75,27 @@ router.get(
 
       // Get tenant configuration for limits
       const tenantConfig = getTenantConfig(req);
-      const effectiveLimit = Math.min(limit, tenantConfig?.searchRowLimit || 1000);
+      const effectiveLimit = Math.min(parsedLimit, tenantConfig?.searchRowLimit || 1000);
 
       // Build time range
-      const timeRange = startDate && endDate ? {
-        start: new Date(startDate),
-        end: new Date(endDate)
+      const timeRange = parsedStartDate && parsedEndDate ? {
+        start: new Date(parsedStartDate),
+        end: new Date(parsedEndDate)
       } : undefined;
 
       // Build filters
       const filters: Record<string, any> = {};
-      if (level && level.length > 0) {
-        filters.level = level;
+      if (parsedLevel && parsedLevel.length > 0) {
+        filters.level = parsedLevel;
       }
-      if (service && service.length > 0) {
-        filters.service_name = service;
+      if (parsedService && parsedService.length > 0) {
+        filters.service_name = parsedService;
       }
 
       // Add search query filter if provided
-      if (q && q.trim()) {
+      if (parsedQ && parsedQ.trim()) {
         // For full-text search, we'll use ClickHouse's capabilities
-        filters._search_query = q.trim();
+        filters._search_query = parsedQ.trim();
       }
 
       // Build query using tenant-aware query builder
@@ -92,13 +104,13 @@ router.get(
         timeRange,
         filters,
         limit: effectiveLimit,
-        orderBy,
-        orderDirection
+        orderBy: parsedOrderBy,
+        orderDirection: parsedOrderDirection as 'ASC' | 'DESC' | undefined
       });
 
       // Add search query handling if needed
       let finalQuery = query;
-      if (q && q.trim()) {
+      if (parsedQ && parsedQ.trim()) {
         // Replace the basic query with full-text search
         finalQuery = finalQuery.replace(
           'SELECT *', 
@@ -108,13 +120,13 @@ router.get(
           'WHERE', 
           `WHERE (positionCaseInsensitive(message, {_search_query:String}) > 0 OR positionCaseInsensitive(level, {_search_query:String}) > 0) AND`
         );
-        query_params._search_query = q.trim();
+        query_params._search_query = parsedQ.trim();
       }
 
       // Add offset for pagination
-      if (offset > 0) {
+      if (parsedOffset > 0) {
         finalQuery += ` OFFSET {offset:UInt32}`;
-        query_params.offset = offset;
+        query_params.offset = parsedOffset;
       }
 
       // Execute query
@@ -124,55 +136,55 @@ router.get(
         format: 'JSONEachRow'
       });
 
-      const logs = await result.json();
+      const logs = await result.json() as any;
 
       // Get total count for pagination
-      const countQuery = queryBuilder.buildLogsQuery({
+      const countQueryResult = queryBuilder.buildLogsQuery({
         timeRange,
         filters,
         limit: 1,
-        orderBy,
-        orderDirection
+        orderBy: parsedOrderBy,
+        orderDirection: parsedOrderDirection as 'ASC' | 'DESC' | undefined
       });
 
-      const totalCountQuery = countQuery.query.replace('SELECT *', 'SELECT COUNT(*) as total');
+      const totalCountQuery = countQueryResult.query.replace('SELECT *', 'SELECT COUNT(*) as total');
       const countResult = await executeTenantsQuery(req, {
         query: totalCountQuery,
-        query_params: countQuery.query_params
+        query_params: countQueryResult.query_params
       });
 
-      const countData = await countResult.json();
+      const countData = await countResult.json() as any;
       const total = countData.data?.[0]?.total || 0;
 
       // Audit log access
       auditTenantAction(req, 'logs_query', 'logs', {
-        query: q,
-        resultCount: logs.data?.length || 0,
+        query: parsedQ,
+        resultCount: (logs.data as any[])?.length || 0,
         timeRange,
         filters
       });
 
       logger.info('Logs query executed successfully', {
         tenantId: req.tenant!.id,
-        resultCount: logs.data?.length || 0,
+        resultCount: (logs.data as any[])?.length || 0,
         limit: effectiveLimit,
-        hasSearch: !!q
+        hasSearch: !!parsedQ
       });
 
       res.json({
-        logs: logs.data || [],
+        logs: (logs.data as any[]) || [],
         pagination: {
           limit: effectiveLimit,
-          offset,
+          offset: parsedOffset,
           total,
-          hasMore: (offset + effectiveLimit) < total
+          hasMore: (parsedOffset + effectiveLimit) < total
         },
         query: {
-          searchQuery: q,
+          searchQuery: parsedQ,
           timeRange,
           filters: {
-            level,
-            service
+            level: parsedLevel,
+            service: parsedService
           }
         }
       });
@@ -180,8 +192,8 @@ router.get(
     } catch (error) {
       logger.error('Logs query failed', {
         tenantId: req.tenant?.id,
-        error: error.message,
-        stack: error.stack
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
       });
 
       res.status(500).json({
@@ -193,7 +205,7 @@ router.get(
 );
 
 // GET /api/logs/services - Get available services for tenant
-router.get('/services', async (req: TenantRequest, res) => {
+router.get('/services', async (req: any, res) => {
   try {
     const query = `
       SELECT DISTINCT service_name, COUNT(*) as log_count
@@ -210,16 +222,16 @@ router.get('/services', async (req: TenantRequest, res) => {
       query_params: { tenant_id: req.tenant!.id }
     });
 
-    const services = await result.json();
+    const services = await result.json() as any;
 
     res.json({
-      services: services.data || []
+      services: (services.data as any[]) || []
     });
 
   } catch (error) {
     logger.error('Services query failed', {
       tenantId: req.tenant?.id,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
 
     res.status(500).json({
@@ -230,7 +242,7 @@ router.get('/services', async (req: TenantRequest, res) => {
 });
 
 // GET /api/logs/levels - Get available log levels for tenant
-router.get('/levels', async (req: TenantRequest, res) => {
+router.get('/levels', async (req: any, res) => {
   try {
     const query = `
       SELECT level, COUNT(*) as count
@@ -246,16 +258,16 @@ router.get('/levels', async (req: TenantRequest, res) => {
       query_params: { tenant_id: req.tenant!.id }
     });
 
-    const levels = await result.json();
+    const levels = await result.json() as any;
 
     res.json({
-      levels: levels.data || []
+      levels: (levels.data as any[]) || []
     });
 
   } catch (error) {
     logger.error('Log levels query failed', {
       tenantId: req.tenant?.id,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
 
     res.status(500).json({
@@ -281,7 +293,7 @@ router.post(
       limit: z.number().int().min(1).max(1000).optional().default(100)
     })
   }),
-  async (req: TenantRequest, res) => {
+  async (req: any, res) => {
     try {
       const { groupBy, aggregation, field, timeRange, filters, limit } = req.body;
 
@@ -315,16 +327,16 @@ router.post(
         query_params
       });
 
-      const aggregations = await result.json();
+      const aggregations = await result.json() as any;
 
       auditTenantAction(req, 'logs_aggregate', 'logs', {
         groupBy,
         aggregation,
-        resultCount: aggregations.data?.length || 0
+        resultCount: (aggregations.data as any[])?.length || 0
       });
 
       res.json({
-        aggregations: aggregations.data || [],
+        aggregations: (aggregations.data as any[]) || [],
         query: {
           groupBy,
           aggregation,
@@ -337,7 +349,7 @@ router.post(
     } catch (error) {
       logger.error('Log aggregation failed', {
         tenantId: req.tenant?.id,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
 
       res.status(500).json({

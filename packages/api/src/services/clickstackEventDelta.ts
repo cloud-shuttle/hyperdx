@@ -98,7 +98,9 @@ export class ClickStackEventDeltaService {
           format: 'JSON'
         });
 
-      return result.json().data.map(row => ({
+      const resultData = await result.json() as any;
+
+      return resultData.data.map((row: any) => ({
         baseline: row.baseline,
         current: row.current,
         deltaPercent: row.deltaPercent,
@@ -134,11 +136,13 @@ export class ClickStackEventDeltaService {
           format: 'JSON'
         });
 
-      if (result.json().data.length === 0) {
+      const resultData = await result.json() as any;
+      
+      if (resultData.data.length === 0) {
         return null;
       }
 
-      const row = result.json().data[0];
+      const row = resultData.data[0] as any as any;
       return {
         baseline: row.baseline,
         current: row.current,
@@ -271,7 +275,8 @@ export class ClickStackEventDeltaService {
           query: trendQuery,
           format: 'JSON'
         });
-      const trend = trendResult.json().data.map(row => ({
+      const trendData = await trendResult.json() as any;
+      const trend = trendData.data.map((row: any) => ({
         timestamp: row.hour,
         deltaPercent: row.deltaPercent,
         baseline: row.baseline,
@@ -349,7 +354,8 @@ export class ClickStackEventDeltaService {
           query: deltasQuery,
           format: 'JSON'
         });
-      const deltas = deltasResult.json().data;
+      const deltasData = await deltasResult.json() as any;
+      const deltas = deltasData.data;
 
       // Calculate statistical measures for anomaly detection
       const deltaPercentages = deltas.map(d => d.deltaPercent);
@@ -438,7 +444,8 @@ export class ClickStackEventDeltaService {
           query: totalQuery,
           format: 'JSON'
         });
-      const totalDeltas = totalResult.json().data[0]?.total_deltas || 0;
+      const totalData = await totalResult.json() as any;
+      const totalDeltas = (totalData.data[0] as any)?.total_deltas || 0;
 
       // Get anomalies (deltas with > 20% change)
       const anomaliesQuery = `
@@ -452,7 +459,8 @@ export class ClickStackEventDeltaService {
           query: anomaliesQuery,
           format: 'JSON'
         });
-      const anomalies = anomaliesResult.json().data[0]?.anomalies || 0;
+      const anomaliesData = await anomaliesResult.json() as any;
+      const anomalies = (anomaliesData.data[0] as any)?.anomalies || 0;
 
       // Get statistics
       const statsQuery = `
@@ -468,7 +476,8 @@ export class ClickStackEventDeltaService {
           query: statsQuery,
           format: 'JSON'
         });
-      const stats = statsResult.json().data[0];
+      const statsData = await statsResult.json() as any;
+      const stats = statsData.data[0] as any;
 
       // Get delta distribution
       const distributionQuery = `
@@ -494,7 +503,8 @@ export class ClickStackEventDeltaService {
           query: distributionQuery,
           format: 'JSON'
         });
-      const deltaDistribution = distributionResult.json().data.map(row => ({
+      const distributionData = await distributionResult.json() as any;
+      const deltaDistribution = distributionData.data.map((row: any) => ({
         range: row.range,
         count: row.count,
       }));
@@ -515,7 +525,8 @@ export class ClickStackEventDeltaService {
           query: topAnomaliesQuery,
           format: 'JSON'
         });
-      const topAnomalies = topAnomaliesResult.json().data.map(row => {
+      const topAnomaliesData = await topAnomaliesResult.json() as any;
+      const topAnomalies = topAnomaliesData.data.map((row: any) => {
         const absDelta = Math.abs(row.deltaPercent);
         let severity: string;
         if (absDelta > 50) {

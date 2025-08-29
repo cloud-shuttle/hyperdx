@@ -77,7 +77,7 @@ function DBTimeChartComponent({
     useMemo(() => {
       return data != null && isSuccess
         ? formatResponseForTimeChart({
-            res: data,
+            res: { data: Array.isArray(data) ? data : [] },
             dateRange,
             granularity,
             generateEmptyBuckets: fillNulls !== false,

@@ -25,21 +25,16 @@ import {
   TrendingDown,
   BarChart3,
   Cpu,
-  Memory,
   HardDrive,
   Network,
   Globe,
   Lock,
-  Backup,
+  Save,
   Scale,
-  Rollback,
+  RotateCcw,
   Play,
   Pause,
-  RotateCcw,
   Info,
-  Warning,
-  Error,
-  Success,
   Users,
   Target,
   Gauge,
@@ -50,6 +45,7 @@ import {
   Key,
   Bell
 } from 'lucide-react';
+import { clickStackProductionService } from './ClickStackProductionService';
 
 // API calls will be made directly to /api/clickstack/production endpoints
 
@@ -583,7 +579,7 @@ export const ClickStackProductionDashboard: React.FC<ClickStackProductionDashboa
                       className="w-full"
                       onClick={() => setIsRollbackModalOpen(true)}
                     >
-                      <Rollback className="h-4 w-4 mr-2" />
+                      <RotateCcw className="h-4 w-4 mr-2" />
                       Rollback Deployment
                     </Button>
                   </div>
@@ -603,7 +599,7 @@ export const ClickStackProductionDashboard: React.FC<ClickStackProductionDashboa
                       className="w-full"
                       onClick={handleBackup}
                     >
-                      <Backup className="h-4 w-4 mr-2" />
+                      <Save className="h-4 w-4 mr-2" />
                       Backup Data
                     </Button>
                   </div>

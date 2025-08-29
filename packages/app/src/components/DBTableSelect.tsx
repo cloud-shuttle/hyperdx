@@ -29,7 +29,7 @@ export default function DBTableSelect({
     },
   );
 
-  const data = (tables?.data || []).map((db: { name: string }) => ({
+  const data = (tables || []).map((db: { name: string }) => ({
     value: db.name,
     label: db.name,
   }));

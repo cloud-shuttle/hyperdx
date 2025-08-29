@@ -17,23 +17,23 @@ import { Team } from './Team';
 @Index(['createdAt'])
 export class TeamInvite {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  email: string;
+  email!: string;
 
   @Column({ type: 'uuid' })
-  teamId: string;
+  teamId!: string;
 
   @ManyToOne(() => Team, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'teamId' })
-  team: Team;
+  team!: Team;
 
   @Column({ type: 'varchar', length: 255, unique: true })
-  token: string;
+  token!: string;
 
   @Column({ type: 'varchar', length: 50, default: 'pending' })
-  status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+  status!: 'pending' | 'accepted' | 'expired' | 'cancelled';
 
   @Column({ type: 'timestamp', nullable: true })
   expiresAt?: Date;
@@ -48,8 +48,8 @@ export class TeamInvite {
   acceptedAt?: Date;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

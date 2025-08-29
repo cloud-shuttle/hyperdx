@@ -215,15 +215,22 @@ export class ClickStackSearchService {
 
       const executionTime = Date.now() - startTime;
 
+      const logsData = await logsResult.json() as any;
+      const tracesData = await tracesResult.json() as any;
+      const metricsData = await metricsResult.json() as any;
+      const sessionsData = await sessionsResult.json() as any;
+      const patternsData = await patternsResult.json() as any;
+      const deltasData = await deltasResult.json() as any;
+
       return {
-        logs: logsResult.json().data,
-        traces: tracesResult.json().data,
-        metrics: metricsResult.json().data,
-        sessions: sessionsResult.json().data,
-        patterns: patternsResult.json().data,
-        eventDeltas: deltasResult.json().data,
-        total: logsResult.json().data.length + tracesResult.json().data.length + metricsResult.json().data.length + 
-               sessionsResult.json().data.length + patternsResult.json().data.length + deltasResult.json().data.length,
+        logs: logsData.data,
+        traces: tracesData.data,
+        metrics: metricsData.data,
+        sessions: sessionsData.data,
+        patterns: patternsData.data,
+        eventDeltas: deltasData.data,
+        total: logsData.data.length + tracesData.data.length + metricsData.data.length + 
+               sessionsData.data.length + patternsData.data.length + deltasData.data.length,
         query,
         executionTime,
         facets,
@@ -291,8 +298,13 @@ export class ClickStackSearchService {
           format: 'JSON'
         });
 
+      const resultData = await result.json() as any;
+
       return {
-        sessions: result.json().data.map(row => ({
+        logs: [],
+        traces: [],
+        metrics: [],
+        sessions: resultData.data.map((row: any) => ({
           sessionId: row.sessionId,
           userId: row.userId,
           pageUrl: row.pageUrl,
@@ -303,7 +315,9 @@ export class ClickStackSearchService {
           duration: row.duration || 0,
           eventCount: row.eventCount || 0,
         })),
-        total: result.json().data.length,
+        patterns: [],
+        eventDeltas: [],
+        total: resultData.data.length,
         query: 'session_search',
         executionTime: 0,
         facets: {},
@@ -356,8 +370,14 @@ export class ClickStackSearchService {
           format: 'JSON'
         });
 
+      const resultData = await result.json() as any;
+
       return {
-        patterns: result.json().data.map(row => ({
+        logs: [],
+        traces: [],
+        metrics: [],
+        sessions: [],
+        patterns: resultData.data.map((row: any) => ({
           patternId: row.patternId,
           patternType: row.patternType,
           confidence: row.confidence,
@@ -365,7 +385,8 @@ export class ClickStackSearchService {
           timestamp: row.timestamp,
           metadata: row.metadata || {},
         })),
-        total: result.json().data.length,
+        eventDeltas: [],
+        total: resultData.data.length,
         query: 'pattern_search',
         executionTime: 0,
         facets: {},
@@ -398,7 +419,8 @@ export class ClickStackSearchService {
           query: totalQueriesQuery,
           format: 'JSON'
         });
-      const totalQueries = totalQueriesResult.json().data[0]?.total_queries || 0;
+      const totalQueriesData = await totalQueriesResult.json() as any;
+      const totalQueries = (totalQueriesData.data[0] as any)?.total_queries || 0;
 
       // Get search trends
       const trendsQuery = `
@@ -416,7 +438,8 @@ export class ClickStackSearchService {
           query: trendsQuery,
           format: 'JSON'
         });
-      const searchTrends = trendsResult.json().data.map(row => ({
+      const trendsData = await trendsResult.json() as any;
+      const searchTrends = trendsData.data.map((row: any) => ({
         timestamp: row.hour,
         count: row.count,
       }));
@@ -547,10 +570,14 @@ export class ClickStackSearchService {
           format: 'JSON'
         });
 
+      const sessionFacetsData = await sessionFacetsResult.json() as any;
+      const patternFacetsData = await patternFacetsResult.json() as any;
+      const userFacetsData = await userFacetsResult.json() as any;
+
       return {
-        pages: sessionFacetsResult.json().data,
-        patterns: patternFacetsResult.json().data,
-        users: userFacetsResult.json().data,
+        pages: sessionFacetsData.data,
+        patterns: patternFacetsData.data,
+        users: userFacetsData.data,
       };
     } catch (error) {
       console.error('Failed to get search facets:', error);

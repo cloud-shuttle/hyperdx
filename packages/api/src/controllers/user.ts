@@ -1,32 +1,36 @@
-import type { ObjectId } from '@/models';
-import User from '@/models/user';
+import { userService } from '@/services/UserService';
+import { User } from '@/entities/User';
 
-export function findUserByAccessKey(accessKey: string) {
-  return User.findOne({ accessKey });
+export async function findUserByAccessKey(accessKey: string): Promise<User | null> {
+  // TODO: Implement accessKey functionality in UserService
+  // For now, return null to indicate user not found
+  return null;
 }
 
-export function findUserById(id: string) {
-  return User.findById(id);
+export async function findUserById(id: string) {
+  return userService.findById(id);
 }
 
-export function findUserByEmail(email: string) {
-  return User.findOne({ email });
+export async function findUserByEmail(email: string) {
+  return userService.findByEmail(email);
 }
 
 export async function findUserByEmailInTeam(
   email: string,
-  team: string | ObjectId,
+  teamId: string,
 ) {
-  return User.findOne({ email, team });
+  const user = await userService.findByEmail(email);
+  return user && user.teamId === teamId ? user : null;
 }
 
-export function findUsersByTeam(team: string | ObjectId) {
-  return User.find({ team }).sort({ createdAt: 1 });
+export async function findUsersByTeam(teamId: string) {
+  return userService.findByTeamId(teamId);
 }
 
-export function deleteTeamMember(teamId: string | ObjectId, userId: string) {
-  return User.findOneAndDelete({
-    team: teamId,
-    _id: userId,
-  });
+export async function deleteTeamMember(teamId: string, userId: string) {
+  const user = await userService.findById(userId);
+  if (user && user.teamId === teamId) {
+    return userService.deleteUser(userId);
+  }
+  return false;
 }

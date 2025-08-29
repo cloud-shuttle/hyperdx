@@ -7,6 +7,9 @@ import {
   ResponseJSON,
   SettingsMap,
 } from '@clickhouse/client';
+
+// Export createClient and BaseResultSet for use in other modules
+export { createClient, BaseResultSet };
 import opentelemetry from '@opentelemetry/api';
 import _ from 'lodash';
 import ms from 'ms';

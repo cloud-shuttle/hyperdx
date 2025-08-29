@@ -64,7 +64,7 @@ export async function setupTeamDefaults(teamId: string) {
         const newConnection = await createConnection(teamId, {
           ...connectionConfig,
           password: connectionConfig.password || '',
-          team: team._id,
+          team: team.id,
         });
 
         logger.info(
@@ -147,7 +147,7 @@ export async function setupTeamDefaults(teamId: string) {
         const sourceConfigCleaned = {
           ...sourceConfig,
           connection: connectionId,
-          team: team._id,
+          team: team.id,
         };
 
         // Remove source reference fields that will be handled in the second pass

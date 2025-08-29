@@ -245,7 +245,7 @@ export class ClickStackDeploymentService {
         format: 'JSON'
       });
 
-      if (tables.length < 3) {
+      if ((tables as any).length < 3) {
         throw new Error('Required ClickStack tables not found');
       }
 

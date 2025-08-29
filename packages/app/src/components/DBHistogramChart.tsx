@@ -209,7 +209,7 @@ export default function DBHistogramChart({
   const genSearchUrl = () => {};
 
   // Don't ask me why...
-  const buckets = data?.data?.[0]?.data;
+  const buckets = Array.isArray(data) && data[0]?.data ? data[0].data : [];
 
   return isLoading ? (
     <div className="d-flex h-100 w-100 align-items-center justify-content-center text-muted">
@@ -242,7 +242,7 @@ export default function DBHistogramChart({
         )}
       </Box>
     </div>
-  ) : data?.data.length === 0 ? (
+  ) : (Array.isArray(data) && data.length === 0) ? (
     <div className="d-flex h-100 w-100 align-items-center justify-content-center text-muted">
       No data found within time range.
     </div>

@@ -17,7 +17,7 @@ import {
   Clock,
   MousePointer,
   Keyboard,
-  Touch,
+  Hand,
   AlertTriangle,
   Info,
   Settings,

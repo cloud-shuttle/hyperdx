@@ -329,10 +329,10 @@ export default function DBDeltaChart({
   const { sortedProperties, outlierValueOccurences, inlierValueOccurences } =
     useMemo(() => {
       const { percentageOccurences: outlierValueOccurences } =
-        getPropertyStatistics(outlierData?.data ?? []);
+        getPropertyStatistics(Array.isArray(outlierData) ? outlierData : []);
 
       const { percentageOccurences: inlierValueOccurences } =
-        getPropertyStatistics(inlierData?.data ?? []);
+        getPropertyStatistics(Array.isArray(inlierData) ? inlierData : []);
 
       const sortedProperties = Array.from(outlierValueOccurences.keys())
         .map(key => {
@@ -363,7 +363,7 @@ export default function DBDeltaChart({
         outlierValueOccurences,
         inlierValueOccurences,
       };
-    }, [outlierData?.data, inlierData?.data]);
+    }, [outlierData, inlierData]);
 
   const [activePage, setPage] = useState(1);
 

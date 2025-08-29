@@ -1,237 +1,104 @@
 import { Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
-import Team from '@/models/team';
-import { logger } from '@/utils/logger';
+import { teamService } from '@/services/TeamService';
+import logger from '@/utils/logger';
 
-// Extend Request interface for tenant context
-export interface TenantRequest extends Request {
-  tenant?: {
-    id: string;
-    name: string;
-    team: any; // MongoDB team document
-  };
+// Extend Request interface to include tenant context
+declare global {
+  namespace Express {
+    interface Request {
+      tenant?: {
+        id: string;
+        name: string;
+        teamId: string;
+      };
+    }
+  }
 }
 
-// Validation schemas
-const JWTPayloadSchema = z.object({
-  tenant_id: z.string(),
-  user_id: z.string().optional(),
-  exp: z.number(),
-  iat: z.number(),
-});
-
-// Mock auth service integration (replace with your actual auth service)
-export const extractTenantFromAuth = async (authToken?: string): Promise<{ id: string; name: string } | null> => {
-  if (!authToken) {
-    return null;
-  }
-
-  try {
-    // Remove 'Bearer ' prefix
-    const token = authToken.replace(/^Bearer\s+/, '');
-    
-    // For demo purposes, we'll decode the JWT payload manually
-    // In production, you should verify the signature with your auth service
-    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-    
-    // Validate payload structure
-    const validatedPayload = JWTPayloadSchema.parse(payload);
-    
-    // Check token expiration
-    if (validatedPayload.exp < Date.now() / 1000) {
-      logger.warn('Expired JWT token', { exp: validatedPayload.exp });
-      return null;
-    }
-    
-    // TODO: Replace this with actual auth service call
-    // const response = await fetch(`${AUTH_SERVICE_URL}/validate`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Authorization': authToken,
-    //     'Content-Type': 'application/json'
-    //   }
-    // });
-    
-    // For now, extract tenant from JWT payload
-    return {
-      id: validatedPayload.tenant_id,
-      name: `Tenant ${validatedPayload.tenant_id}` // This should come from auth service
-    };
-    
-  } catch (error) {
-    logger.error('Failed to extract tenant from auth token', { error: error.message });
-    return null;
-  }
-};
-
-// Tenant middleware function
-export const tenantMiddleware = async (
-  req: TenantRequest,
+export async function setTenantContext(
+  req: Request,
   res: Response,
-  next: NextFunction
-) => {
+  next: NextFunction,
+) {
   try {
-    // Extract tenant from authorization header
-    const authToken = req.headers.authorization;
-    const tenant = await extractTenantFromAuth(authToken);
+    // Get tenant from various sources (API key, user session, etc.)
+    const tenantId = getTenantIdFromRequest(req);
     
-    if (!tenant) {
-      logger.warn('Request rejected - no valid tenant context', {
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        path: req.path
-      });
-      
-      return res.status(403).json({ 
-        error: 'Invalid tenant context',
-        message: 'Authentication required with valid tenant information'
-      });
+    if (!tenantId) {
+      return res.status(401).json({ error: 'Tenant context required' });
     }
 
-    // Find the team/organization for this tenant
-    const team = await Team.findOne({ tenantId: tenant.id });
-    
+    // Get tenant/team information
+    const team = await teamService.findByTenantId(tenantId);
     if (!team) {
-      logger.warn('Request rejected - tenant not found in database', {
-        tenantId: tenant.id,
-        path: req.path
-      });
-      
-      return res.status(404).json({
-        error: 'Tenant not found',
-        message: 'Tenant is not registered in the system'
-      });
+      return res.status(404).json({ error: 'Tenant not found' });
     }
 
-    // Attach tenant context to request
-    req.tenant = {
-      id: tenant.id,
-      name: tenant.name,
-      team: team
-    };
-
-    // Log tenant access for audit purposes
-    logger.info('Tenant access granted', {
-      tenantId: tenant.id,
-      tenantName: tenant.name,
-      teamId: team._id,
-      path: req.path,
-      method: req.method,
-      ip: req.ip
-    });
-
-    next();
-    
-  } catch (error) {
-    logger.error('Tenant middleware error', { 
-      error: error.message,
-      stack: error.stack,
-      path: req.path
-    });
-    
-    return res.status(500).json({
-      error: 'Authentication error',
-      message: 'Internal server error during authentication'
-    });
-  }
-};
-
-// Optional middleware for API key-based authentication (for OTEL ingestion)
-export const apiKeyTenantMiddleware = async (
-  req: TenantRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    // Check for API key in header or query parameter
-    const apiKey = req.headers['x-api-key'] || req.query.apiKey;
-    
-    if (!apiKey || typeof apiKey !== 'string') {
-      return res.status(401).json({
-        error: 'API key required',
-        message: 'Valid API key must be provided'
-      });
-    }
-
-    // Find team by API key
-    const team = await Team.findOne({ apiKey });
-    
-    if (!team) {
-      logger.warn('Invalid API key used', {
-        apiKey: apiKey.substring(0, 8) + '...',
-        ip: req.ip,
-        path: req.path
-      });
-      
-      return res.status(401).json({
-        error: 'Invalid API key',
-        message: 'API key is not valid'
-      });
-    }
-
-    // Attach tenant context based on team
+    // Set tenant context
     req.tenant = {
       id: team.tenantId,
-      name: team.tenantName || `Tenant ${team.tenantId}`,
-      team: team
+      name: team.tenantName || team.name,
+      teamId: team.id,
     };
 
-    logger.info('API key tenant access granted', {
-      tenantId: team.tenantId,
-      teamId: team._id,
-      path: req.path,
-      method: req.method
-    });
-
+    logger.debug(`Tenant context set: ${team.tenantId} (${team.name})`);
     next();
-    
   } catch (error) {
-    logger.error('API key tenant middleware error', { 
-      error: error.message,
-      path: req.path
-    });
-    
-    return res.status(500).json({
-      error: 'Authentication error',
-      message: 'Internal server error during API key validation'
-    });
+    logger.error('Error setting tenant context:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
-};
+}
 
-// Middleware to enforce tenant-specific rate limits
-export const tenantRateLimitMiddleware = (
-  req: TenantRequest,
+export function requireTenantContext(
+  req: Request,
   res: Response,
-  next: NextFunction
-) => {
-  // Implementation would depend on your rate limiting strategy
-  // This is a placeholder for tenant-specific rate limiting
-  
+  next: NextFunction,
+) {
   if (!req.tenant) {
-    return next();
+    return res.status(401).json({ error: 'Tenant context required' });
   }
-
-  const { team } = req.tenant;
-  
-  // Check tenant-specific rate limits
-  if (team.allowedIngestionRate && req.path.includes('/ingest')) {
-    // Implement rate limiting logic here
-    // For now, we'll just log the limit
-    logger.debug('Checking ingestion rate limit', {
-      tenantId: req.tenant.id,
-      allowedRate: team.allowedIngestionRate
-    });
-  }
-
   next();
-};
+}
 
-// Utility function to get tenant context from request
-export const getTenantContext = (req: TenantRequest) => {
+export function getTenantIdFromRequest(req: Request): string | null {
+  // Try to get tenant ID from various sources
+  
+  // 1. From API key in headers
+  const apiKey = req.headers['x-api-key'] || req.headers.authorization?.replace('Bearer ', '');
+  if (apiKey) {
+    // TODO: Implement API key to tenant mapping
+    return null;
+  }
+
+  // 2. From user session (if authenticated)
+  if (req.user?.team) {
+    return req.user.team.toString();
+  }
+
+  // 3. From query parameters (for development/testing)
+  if (req.query.tenantId) {
+    return req.query.tenantId as string;
+  }
+
+  // 4. From subdomain (if using subdomain-based tenancy)
+  const hostname = req.hostname;
+  if (hostname.includes('.')) {
+    const subdomain = hostname.split('.')[0];
+    if (subdomain !== 'www' && subdomain !== 'api') {
+      return subdomain;
+    }
+  }
+
+  return null;
+}
+
+export function getCurrentTenant(req: Request) {
   return req.tenant;
-};
+}
 
-// Utility function to ensure tenant context exists
-export const requireTenantContext = (req: TenantRequest): req is TenantRequest & { tenant: NonNullable<TenantRequest['tenant']> } => {
-  return req.tenant !== undefined;
-};
+export function getCurrentTeamId(req: Request): string {
+  if (!req.tenant) {
+    throw new Error('Tenant context not available');
+  }
+  return req.tenant.teamId;
+}

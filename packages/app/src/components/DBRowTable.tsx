@@ -48,7 +48,7 @@ import api from '@/api';
 import { searchChartConfigDefaults } from '@/defaults';
 import { useCsvExport } from '@/hooks/useCsvExport';
 import { useTableMetadata } from '@/hooks/useMetadata';
-import useOffsetPaginatedQuery from '@/hooks/useOffsetPaginatedQuery';
+import { useOffsetPaginatedQuery } from '@/hooks/useOffsetPaginatedQuery';
 import { useGroupedPatterns } from '@/hooks/usePatterns';
 import useRowWhere from '@/hooks/useRowWhere';
 import { useSource } from '@/source';
@@ -1008,7 +1008,7 @@ function DBSqlRowTableComponent({
   // can dedup the columns between the user select and pk
   const columnMap = useMemo(() => {
     return selectColumnMapWithoutAdditionalKeys(
-      data?.meta,
+      (data as any)?.meta || [],
       mergedConfig?.additionalKeysLength,
     );
   }, [data, mergedConfig]);
@@ -1024,8 +1024,8 @@ function DBSqlRowTableComponent({
     });
   }, [columns, columnMap]);
   const processedRows = useMemo(() => {
-    const rows = data?.data ?? [];
-    return rows.map(row => {
+    const rows = (data as any)?.data ?? [];
+    return rows.map((row: any) => {
       const newRow = { ...row };
       objectTypeColumns.forEach(c => {
         if (columnMap.get(c)?._type === JSDataType.JSON) {
@@ -1042,11 +1042,11 @@ function DBSqlRowTableComponent({
   }, [data, objectTypeColumns, columnMap]);
 
   const aliasMap = useMemo(
-    () => chSqlToAliasMap(data?.chSql ?? { sql: '', params: {} }),
+    () => chSqlToAliasMap((data as any)?.chSql ?? { sql: '', params: {} }),
     [data],
   );
 
-  const getRowWhere = useRowWhere({ meta: data?.meta, aliasMap });
+  const getRowWhere = useRowWhere({ meta: (data as any)?.meta || [], aliasMap });
 
   const _onRowExpandClick = useCallback(
     (row: Record<string, any>) => {
@@ -1105,9 +1105,9 @@ function DBSqlRowTableComponent({
       }
 
       const matchedLogs = await groupedPatterns.miner?.matchLogs(
-        processedRows.map(row => row[patternColumn]),
+        processedRows.map((row: any) => row[patternColumn]),
       );
-      return processedRows.filter((row, i) => {
+      return processedRows.filter((row: any, i: number) => {
         const match = matchedLogs?.[i];
         return !noisyPatternIds.includes(`${match}`);
       });

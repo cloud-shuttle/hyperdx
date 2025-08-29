@@ -16,48 +16,48 @@ import { Team } from './Team';
 @Index(['createdAt'])
 export class Webhook {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
 
   @Column({ type: 'uuid' })
-  teamId: string;
+  teamId!: string;
 
   @ManyToOne(() => Team, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'teamId' })
-  team: Team;
+  team!: Team;
 
   @Column({ type: 'varchar', length: 255 })
-  url: string;
+  url!: string;
 
   @Column({ type: 'varchar', length: 50, default: 'POST' })
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH';
+  method!: 'GET' | 'POST' | 'PUT' | 'PATCH';
 
   @Column({ type: 'jsonb', default: {} })
-  headers: Record<string, string>;
+  headers!: Record<string, any>;
 
   @Column({ type: 'jsonb', default: {} })
-  events: string[];
+  events!: string[];
 
   @Column({ type: 'boolean', default: true })
-  isEnabled: boolean;
+  isEnabled!: boolean;
 
   @Column({ type: 'timestamp', nullable: true })
   lastTriggeredAt?: Date;
 
   @Column({ type: 'integer', default: 0 })
-  triggerCount: number;
+  triggerCount!: number;
 
   @Column({ type: 'integer', default: 0 })
-  errorCount: number;
+  errorCount!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

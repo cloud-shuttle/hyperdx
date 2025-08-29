@@ -77,12 +77,15 @@ export async function validateUserAccessKey(
     return res.sendStatus(401);
   }
 
-  const user = await findUserByAccessKey(key);
-  if (!user) {
+  try {
+    const user = await findUserByAccessKey(key);
+    if (!user || !user.id) {
+      return res.sendStatus(401);
+    }
+    req.user = user as any; // Type assertion for compatibility
+  } catch (error) {
     return res.sendStatus(401);
   }
-
-  req.user = user;
 
   next();
 }

@@ -27,7 +27,7 @@ export default function DatabaseSelect({
     { enabled: !!connectionId },
   );
 
-  const data = (databases?.data || []).map((db: { name: string }) => ({
+  const data = (databases || []).map((db: { name: string }) => ({
     value: db.name,
     label: db.name,
   }));

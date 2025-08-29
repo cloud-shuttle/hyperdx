@@ -313,8 +313,8 @@ function HeatmapContainer({
   });
 
   // UInt64 are returned as strings
-  const min = Number.parseInt(minMaxData?.data?.[0]?.['min'] ?? '0', 10);
-  const max = Number.parseInt(minMaxData?.data?.[0]?.['max'] ?? '0', 10);
+  const min = Number.parseInt(Array.isArray(minMaxData) && minMaxData[0]?.['min'] ? minMaxData[0]['min'] : '0', 10);
+  const max = Number.parseInt(Array.isArray(minMaxData) && minMaxData[0]?.['max'] ? minMaxData[0]['max'] : '0', 10);
 
   const bucketConfig: ChartConfigWithDateRange = {
     ...config,
@@ -342,7 +342,7 @@ function HeatmapContainer({
     dateRange[1],
     granularity,
   );
-  const timestampColumn = inferTimestampColumn(data?.meta ?? []);
+  const timestampColumn = inferTimestampColumn([]);
 
   const time: number[] = [];
   const bucket: number[] = [];
@@ -357,7 +357,7 @@ function HeatmapContainer({
       // CH widthBucket will return buckets from 0 to nBuckets + 1
       for (let j = 0; j <= nBuckets + 1; j++) {
         // const resultIndex = i * nBuckets + j;
-        const row = data?.data?.[dataIndex];
+        const row = Array.isArray(data) ? data[dataIndex] : undefined;
 
         if (
           row != null &&

@@ -16,23 +16,23 @@ import { Team } from './Team';
 @Index(['createdAt'])
 export class Dashboard {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
 
   @Column({ type: 'uuid' })
-  teamId: string;
+  teamId!: string;
 
   @ManyToOne(() => Team, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'teamId' })
-  team: Team;
+  team!: Team;
 
   @Column({ type: 'jsonb', default: [] })
-  tiles: Array<{
+  tiles!: Array<{
     id: string;
     type: string;
     title: string;
@@ -40,17 +40,17 @@ export class Dashboard {
   }>;
 
   @Column({ type: 'boolean', default: false })
-  isDefault: boolean;
+  isDefault!: boolean;
 
   @Column({ type: 'boolean', default: true })
-  isPublic: boolean;
+  isPublic!: boolean;
 
   @Column({ type: 'uuid', nullable: true })
   createdById?: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

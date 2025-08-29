@@ -96,11 +96,13 @@ export class ClickStackPatternService {
           format: 'JSON'
         });
 
-      if (result.json().data.length === 0) {
+      const resultData = await result.json() as any;
+      
+      if (resultData.data.length === 0) {
         return null;
       }
 
-      const row = result.json().data[0];
+      const row = resultData.data[0] as any;
       return {
         patternId: row.patternId,
         patternType: row.patternType,
@@ -149,7 +151,9 @@ export class ClickStackPatternService {
           format: 'JSON'
         });
 
-      return result.json().data.map(row => ({
+      const resultData = await result.json() as any;
+
+      return resultData.data.map((row: any) => ({
         patternId: row.patternId,
         patternType: row.patternType,
         confidence: row.confidence,
@@ -222,7 +226,8 @@ export class ClickStackPatternService {
           query: historyQuery,
           format: 'JSON'
         });
-      const history = historyResult.json().data[0];
+      const historyData = await historyResult.json() as any;
+      const history = historyData.data[0] as any;
 
       // Calculate frequency (occurrences per day)
       const firstSeen = new Date(history.first_seen);
@@ -299,7 +304,8 @@ export class ClickStackPatternService {
           query: trendQuery,
           format: 'JSON'
         });
-      const trend = trendResult.json().data.map(row => ({
+      const trendData = await trendResult.json() as any;
+      const trend = trendData.data.map((row: any) => ({
         timestamp: row.hour,
         occurrences: row.occurrences,
         confidence: row.confidence,
@@ -369,7 +375,8 @@ export class ClickStackPatternService {
           query: correlatedPatternsQuery,
           format: 'JSON'
         });
-      const correlatedPatterns = correlatedPatternsResult.json().data.map(row => ({
+      const correlatedPatternsData = await correlatedPatternsResult.json() as any;
+      const correlatedPatterns = correlatedPatternsData.data.map((row: any) => ({
         patternId: row.patternId,
         patternType: row.patternType,
         correlationStrength: row.correlation_count / 100, // Normalize
@@ -433,7 +440,8 @@ export class ClickStackPatternService {
           query: totalQuery,
           format: 'JSON'
         });
-      const totalPatterns = totalResult.json().data[0]?.total_patterns || 0;
+      const totalData = await totalResult.json() as any;
+      const totalPatterns = (totalData.data[0] as any)?.total_patterns || 0;
 
       // Get high confidence patterns
       const highConfidenceQuery = `
@@ -447,7 +455,8 @@ export class ClickStackPatternService {
           query: highConfidenceQuery,
           format: 'JSON'
         });
-      const highConfidencePatterns = highConfidenceResult.json().data[0]?.high_confidence_patterns || 0;
+      const highConfidenceData = await highConfidenceResult.json() as any;
+      const highConfidencePatterns = (highConfidenceData.data[0] as any)?.high_confidence_patterns || 0;
 
       // Get pattern types
       const typesQuery = `
@@ -464,7 +473,8 @@ export class ClickStackPatternService {
           query: typesQuery,
           format: 'JSON'
         });
-      const patternTypes = typesResult.json().data.map(row => ({
+      const typesData = await typesResult.json() as any;
+      const patternTypes = typesData.data.map((row: any) => ({
         type: row.type,
         count: row.count,
       }));
@@ -489,7 +499,8 @@ export class ClickStackPatternService {
           query: confidenceQuery,
           format: 'JSON'
         });
-      const confidenceDistribution = confidenceResult.json().data.map(row => ({
+      const confidenceData = await confidenceResult.json() as any;
+      const confidenceDistribution = confidenceData.data.map((row: any) => ({
         range: row.range,
         count: row.count,
       }));
@@ -511,7 +522,8 @@ export class ClickStackPatternService {
           query: topPatternsQuery,
           format: 'JSON'
         });
-      const topPatterns = topPatternsResult.json().data.map(row => ({
+      const topPatternsData = await topPatternsResult.json() as any;
+      const topPatterns = topPatternsData.data.map((row: any) => ({
         patternId: row.patternId,
         patternType: row.patternType,
         occurrences: row.occurrences,

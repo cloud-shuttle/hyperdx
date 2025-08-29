@@ -128,14 +128,14 @@ export function RowDataPanel({
   const { data, isLoading, isError } = useRowData({ source, rowId });
 
   const firstRow = useMemo(() => {
-    const firstRow = { ...(data?.data?.[0] ?? {}) };
+    const firstRow = { ...(Array.isArray(data) && data[0] ? data[0] : {}) };
     if (!firstRow) {
       return null;
     }
     return firstRow;
   }, [data]);
 
-  const jsonColumns = getJSONColumnNames(data?.meta);
+  const jsonColumns = getJSONColumnNames([]);
 
   return (
     <div className="flex-grow-1 bg-body overflow-auto">

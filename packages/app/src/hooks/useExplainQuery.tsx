@@ -18,7 +18,7 @@ export function useExplainQuery(
     queryKey: ['explain', config],
     queryFn: async ({ signal }) => {
       const query = await renderChartConfig(config, getMetadata());
-      const response = await clickhouseClient.query<'JSONEachRow'>({
+      const response = await clickhouseClient.query({
         query: `EXPLAIN ESTIMATE ${query.sql}`,
         query_params: query.params,
         format: 'JSONEachRow',

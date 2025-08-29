@@ -112,7 +112,7 @@ export const SessionControls: React.FC<SessionControlsProps> = ({
         </Button>
         
         <Button
-          variant="default"
+          variant="primary"
           size="lg"
           onClick={onPlayPause}
           className="w-12 h-12 rounded-full"
@@ -150,7 +150,7 @@ export const SessionControls: React.FC<SessionControlsProps> = ({
           {speedOptions.map((option) => (
             <Button
               key={option.value}
-              variant={playbackSpeed === option.value ? "default" : "outline"}
+              variant={playbackSpeed === option.value ? "primary" : "outline"}
               size="sm"
               onClick={() => onSpeedChange(option.value)}
               className="text-xs"

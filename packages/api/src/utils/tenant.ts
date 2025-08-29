@@ -1,13 +1,12 @@
 import { Request } from 'express';
-import { logger } from '@/utils/logger';
-import { TenantRequest } from '@/middleware/tenant';
+import logger from '@/utils/logger';
 
 // Utility functions for tenant context management
 
 /**
  * Extract tenant ID from request context
  */
-export const getTenantId = (req: TenantRequest): string => {
+export const getTenantId = (req: Request & { tenant?: any }): string => {
   if (!req.tenant) {
     throw new Error('Tenant context not found in request');
   }
@@ -17,13 +16,13 @@ export const getTenantId = (req: TenantRequest): string => {
 /**
  * Extract tenant ID safely with fallback
  */
-export const getTenantIdSafe = (req: TenantRequest, fallback: string = 'default'): string => {
+export const getTenantIdSafe = (req: Request & { tenant?: any }, fallback: string = 'default'): string => {
   try {
     return getTenantId(req);
   } catch (error) {
     logger.warn('Failed to get tenant ID, using fallback', { 
       fallback,
-      error: error.message 
+      error: (error as Error).message 
     });
     return fallback;
   }
@@ -32,7 +31,7 @@ export const getTenantIdSafe = (req: TenantRequest, fallback: string = 'default'
 /**
  * Validate tenant access to a resource
  */
-export const validateTenantAccess = (req: TenantRequest, resourceTenantId: string): boolean => {
+export const validateTenantAccess = (req: Request & { tenant?: any }, resourceTenantId: string): boolean => {
   const requestTenantId = getTenantIdSafe(req);
   
   if (requestTenantId !== resourceTenantId) {
@@ -52,7 +51,7 @@ export const validateTenantAccess = (req: TenantRequest, resourceTenantId: strin
  * Create audit log entry for tenant actions
  */
 export const auditTenantAction = (
-  req: TenantRequest,
+  req: Request & { tenant?: any },
   action: string,
   resource: string,
   metadata?: Record<string, any>
@@ -75,12 +74,12 @@ export const auditTenantAction = (
 /**
  * Check tenant feature permissions
  */
-export const checkTenantFeature = (req: TenantRequest, feature: keyof NonNullable<any>['featuresEnabled']): boolean => {
-  if (!req.tenant?.team?.featuresEnabled) {
+export const checkTenantFeature = (req: Request & { tenant?: any }, feature: keyof NonNullable<any>['featuresEnabled']): boolean => {
+  if (!req.tenant?.featuresEnabled) {
     return true; // Default to enabled if no feature flags set
   }
   
-  const isEnabled = req.tenant.team.featuresEnabled[feature];
+  const isEnabled = req.tenant.featuresEnabled[feature];
   
   if (!isEnabled) {
     logger.info('Tenant feature access denied', {
@@ -96,23 +95,23 @@ export const checkTenantFeature = (req: TenantRequest, feature: keyof NonNullabl
 /**
  * Get tenant-specific configuration
  */
-export const getTenantConfig = (req: TenantRequest) => {
-  if (!req.tenant?.team) {
+export const getTenantConfig = (req: Request & { tenant?: any }) => {
+  if (!req.tenant) {
     return null;
   }
   
-  const { team } = req.tenant;
+  const { tenant } = req;
   
   return {
     tenantId: req.tenant.id,
     tenantName: req.tenant.name,
-    dataRetentionDays: team.dataRetentionDays || 30,
-    maxUsersPerTenant: team.maxUsersPerTenant || 10,
-    allowedIngestionRate: team.allowedIngestionRate || 10000,
-    storageQuotaGB: team.storageQuotaGB || 10,
-    featuresEnabled: team.featuresEnabled || {},
-    searchRowLimit: team.searchRowLimit || 1000,
-    metadataMaxRowsToRead: team.metadataMaxRowsToRead || 10000
+    dataRetentionDays: tenant.dataRetentionDays || 30,
+    maxUsersPerTenant: tenant.maxUsersPerTenant || 10,
+    allowedIngestionRate: tenant.allowedIngestionRate || 10000,
+    storageQuotaGB: tenant.storageQuotaGB || 10,
+    featuresEnabled: tenant.featuresEnabled || {},
+    searchRowLimit: tenant.searchRowLimit || 1000,
+    metadataMaxRowsToRead: tenant.metadataMaxRowsToRead || 10000
   };
 };
 
@@ -120,7 +119,7 @@ export const getTenantConfig = (req: TenantRequest) => {
  * Validate tenant quota usage
  */
 export const validateTenantQuota = async (
-  req: TenantRequest,
+  req: Request & { tenant?: any },
   quotaType: 'storage' | 'ingestion' | 'users',
   currentUsage: number
 ): Promise<{ allowed: boolean; limit: number; usage: number }> => {
@@ -209,9 +208,9 @@ export const createTenantError = (
  * Middleware helper for tenant validation
  */
 export const withTenantValidation = (
-  handler: (req: TenantRequest, res: any, next: any) => void
+  handler: (req: Request & { tenant?: any }, res: any, next: any) => void
 ) => {
-  return (req: TenantRequest, res: any, next: any) => {
+  return (req: Request & { tenant?: any }, res: any, next: any) => {
     if (!req.tenant) {
       return res.status(403).json(
         createTenantError('Tenant context required', 'MISSING_TENANT_CONTEXT', 403)

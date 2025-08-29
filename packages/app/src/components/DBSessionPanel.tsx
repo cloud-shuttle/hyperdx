@@ -61,7 +61,7 @@ export const useSessionId = ({
   });
 
   const result = useMemo(() => {
-    for (const row of data?.data || []) {
+    for (const row of (data as any)?.data || []) {
       if (row.parentSpanId === null && row.rumSessionId) {
         return {
           rumServiceName: row.serviceName,
@@ -70,7 +70,7 @@ export const useSessionId = ({
       }
     }
     // otherwise just return the first session id
-    for (const row of data?.data || []) {
+    for (const row of (data as any)?.data || []) {
       if (row.rumSessionId) {
         return {
           rumServiceName: row.serviceName,

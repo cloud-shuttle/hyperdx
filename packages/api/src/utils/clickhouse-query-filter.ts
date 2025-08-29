@@ -1,5 +1,5 @@
-import { logger } from '@/utils/logger';
-import { TenantRequest } from '@/middleware/tenant';
+import logger from '@/utils/logger';
+import { Request } from 'express';
 import { getTenantId } from '@/utils/tenant';
 import { createTenantClickHouseClient, TenantAwareClickHouse } from '@/clickhouse/tenant';
 
@@ -8,7 +8,7 @@ import { createTenantClickHouseClient, TenantAwareClickHouse } from '@/clickhous
 /**
  * Create a tenant-scoped ClickHouse client from request context
  */
-export const createTenantClient = (req: TenantRequest): TenantAwareClickHouse => {
+export const createTenantClient = (req: Request & { tenant?: any }): TenantAwareClickHouse => {
   const tenantId = getTenantId(req);
   return createTenantClickHouseClient(tenantId);
 };
@@ -17,7 +17,7 @@ export const createTenantClient = (req: TenantRequest): TenantAwareClickHouse =>
  * Execute a tenant-filtered query with automatic client creation
  */
 export const executeTenantsQuery = async (
-  req: TenantRequest,
+  req: Request & { tenant?: any },
   queryOptions: {
     query: string;
     query_params?: Record<string, any>;
@@ -37,7 +37,7 @@ export const executeTenantsQuery = async (
  * Insert tenant-tagged data with automatic client creation
  */
 export const insertTenantData = async (
-  req: TenantRequest,
+  req: Request & { tenant?: any },
   insertOptions: {
     table: string;
     values: any[];
@@ -59,7 +59,7 @@ export const insertTenantData = async (
 export class TenantQueryBuilder {
   private tenantId: string;
 
-  constructor(req: TenantRequest) {
+  constructor(req: Request & { tenant?: any }) {
     this.tenantId = getTenantId(req);
   }
 
@@ -294,7 +294,7 @@ export class TenantQueryBuilder {
  * Helper function to execute query with automatic tenant context
  */
 export const withTenantQuery = async <T>(
-  req: TenantRequest,
+  req: Request & { tenant?: any },
   queryFn: (client: TenantAwareClickHouse) => Promise<T>
 ): Promise<T> => {
   const tenantClient = createTenantClient(req);

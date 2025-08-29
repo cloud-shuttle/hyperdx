@@ -21,7 +21,7 @@ router.get('/', async (req, res, next) => {
       team: teamId,
     } = req.user;
 
-    const team = await getTeam(teamId);
+    const team = await getTeam(teamId.toString());
 
     return res.json({
       accessKey,

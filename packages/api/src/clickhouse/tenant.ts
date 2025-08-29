@@ -3,10 +3,10 @@ import {
   ResponseJSON,
   SettingsMap 
 } from '@clickhouse/client';
-import opentelemetry from '@opentelemetry/api';
+import opentelemetry, { SpanStatusCode } from '@opentelemetry/api';
 import SqlString from 'sqlstring';
 
-import { logger } from '@/utils/logger';
+import logger from '@/utils/logger';
 import { createClient } from './index'; // Import existing ClickHouse client setup
 
 const tracer = opentelemetry.trace.getTracer(__filename);
@@ -115,7 +115,7 @@ export class TenantAwareClickHouse {
     query_params?: Record<string, any>;
     format?: string;
     clickhouse_settings?: SettingsMap;
-  }): Promise<BaseResultSet> {
+  }): Promise<BaseResultSet<any>> {
     return tracer.startActiveSpan('clickhouse.tenant.query', async (span) => {
       try {
         const { query: originalQuery, query_params = {}, ...otherOptions } = options;
@@ -149,19 +149,19 @@ export class TenantAwareClickHouse {
           ...otherOptions
         });
 
-        span.setStatus({ code: opentelemetry.SpanStatusCode.OK });
+        span.setStatus({ code: SpanStatusCode.OK });
         return result;
         
       } catch (error) {
-        span.recordException(error);
+        span.recordException(error as Error);
         span.setStatus({
-          code: opentelemetry.SpanStatusCode.ERROR,
-          message: error.message
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message
         });
         
         logger.error('Tenant-filtered query failed', {
           tenantId: this.tenantId,
-          error: error.message,
+          error: (error as Error).message,
           queryPrefix: options.query.substring(0, 100) + '...'
         });
         
@@ -178,7 +178,7 @@ export class TenantAwareClickHouse {
     values: any[];
     format?: string;
     clickhouse_settings?: SettingsMap;
-  }): Promise<BaseResultSet> {
+  }): Promise<BaseResultSet<any>> {
     return tracer.startActiveSpan('clickhouse.tenant.insert', async (span) => {
       try {
         const { table, values, ...otherOptions } = options;
@@ -215,20 +215,20 @@ export class TenantAwareClickHouse {
           ...otherOptions
         });
 
-        span.setStatus({ code: opentelemetry.SpanStatusCode.OK });
+        span.setStatus({ code: SpanStatusCode.OK });
         return result;
         
       } catch (error) {
-        span.recordException(error);
+        span.recordException(error as Error);
         span.setStatus({
-          code: opentelemetry.SpanStatusCode.ERROR,
-          message: error.message
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message
         });
         
         logger.error('Tenant-tagged insert failed', {
           tenantId: this.tenantId,
           table: options.table,
-          error: error.message
+          error: (error as Error).message
         });
         
         throw error;
@@ -243,7 +243,7 @@ export class TenantAwareClickHouse {
     query: string;
     query_params?: Record<string, any>;
     clickhouse_settings?: SettingsMap;
-  }): Promise<BaseResultSet> {
+  }): Promise<BaseResultSet<any>> {
     return tracer.startActiveSpan('clickhouse.tenant.command', async (span) => {
       try {
         const { query: originalQuery, query_params = {}, ...otherOptions } = options;
@@ -274,19 +274,19 @@ export class TenantAwareClickHouse {
           ...otherOptions
         });
 
-        span.setStatus({ code: opentelemetry.SpanStatusCode.OK });
+        span.setStatus({ code: SpanStatusCode.OK });
         return result;
         
       } catch (error) {
-        span.recordException(error);
+        span.recordException(error as Error);
         span.setStatus({
-          code: opentelemetry.SpanStatusCode.ERROR,
-          message: error.message
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message
         });
         
         logger.error('Tenant command failed', {
           tenantId: this.tenantId,
-          error: error.message
+          error: (error as Error).message
         });
         
         throw error;
@@ -318,7 +318,7 @@ export class TenantAwareClickHouse {
     } catch (error) {
       logger.error('ClickHouse ping failed for tenant', {
         tenantId: this.tenantId,
-        error: error.message
+        error: (error as Error).message
       });
       return false;
     }

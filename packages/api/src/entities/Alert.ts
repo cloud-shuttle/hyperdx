@@ -17,20 +17,20 @@ import { SavedSearch } from './SavedSearch';
 @Index(['createdAt'])
 export class Alert {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
 
   @Column({ type: 'uuid' })
-  teamId: string;
+  teamId!: string;
 
   @ManyToOne(() => Team, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'teamId' })
-  team: Team;
+  team!: Team;
 
   @Column({ type: 'uuid', nullable: true })
   savedSearchId?: string;
@@ -39,29 +39,32 @@ export class Alert {
   @JoinColumn({ name: 'savedSearchId' })
   savedSearch?: SavedSearch;
 
+  @Column({ type: 'uuid', nullable: true })
+  dashboardId?: string;
+
   @Column({ type: 'varchar', length: 50, default: 'logs' })
-  source: 'logs' | 'traces' | 'metrics';
+  source!: 'logs' | 'traces' | 'metrics';
 
   @Column({ type: 'varchar', length: 50, default: 'count' })
-  type: 'count' | 'percentile' | 'custom';
+  type!: 'count' | 'percentile' | 'custom';
 
   @Column({ type: 'jsonb' })
-  query: Record<string, any>;
+  query!: Record<string, any>;
 
   @Column({ type: 'varchar', length: 50, default: 'gt' })
-  operator: 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne';
+  operator!: 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'ne';
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  threshold: number;
+  threshold!: number;
 
   @Column({ type: 'integer', default: 5 })
-  windowSizeInMinutes: number;
+  windowSizeInMinutes!: number;
 
   @Column({ type: 'boolean', default: true })
-  isEnabled: boolean;
+  isEnabled!: boolean;
 
   @Column({ type: 'jsonb', default: [] })
-  channels: Array<{
+  channels!: Array<{
     type: 'webhook' | 'slack' | 'email';
     config: Record<string, any>;
   }>;
@@ -70,11 +73,11 @@ export class Alert {
   lastTriggeredAt?: Date;
 
   @Column({ type: 'integer', default: 0 })
-  triggerCount: number;
+  triggerCount!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

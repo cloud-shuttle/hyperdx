@@ -95,11 +95,13 @@ export class ClickStackSessionService {
           format: 'JSON'
         });
 
-      if (result.json().data.length === 0) {
+      const resultData = await result.json() as any;
+      
+      if (resultData.data.length === 0) {
         return null;
       }
 
-      const row = result.json().data[0];
+      const row = resultData.data[0] as any;
       return {
         sessionId: row.sessionId,
         userId: row.userId,
@@ -143,7 +145,9 @@ export class ClickStackSessionService {
           format: 'JSON'
         });
 
-      return result.json().data.map((row, index) => {
+      const resultData = await result.json() as any;
+
+      return resultData.data.map((row, index) => {
         const eventData = JSON.parse(row.eventData || '{}');
         return {
           eventId: `${sessionId}-${index}`,
@@ -204,7 +208,9 @@ export class ClickStackSessionService {
           format: 'JSON'
         });
 
-      return result.json().data.map(row => ({
+      const resultData = await result.json() as any;
+
+      return resultData.data.map((row: any) => ({
         sessionId: row.sessionId,
         userId: row.userId,
         pageUrl: row.pageUrl,
@@ -297,7 +303,8 @@ export class ClickStackSessionService {
           query: sessionsQuery,
           format: 'JSON'
         });
-      const sessions = sessionsResult.json().data.map(row => ({
+      const sessionsData = await sessionsResult.json() as any;
+      const sessions = sessionsData.data.map((row: any) => ({
         sessionId: row.sessionId,
         userId: row.userId,
         pageUrl: row.pageUrl,
@@ -326,7 +333,8 @@ export class ClickStackSessionService {
           query: pagesQuery,
           format: 'JSON'
         });
-      const mostVisitedPages = pagesResult.json().data.map(row => ({
+      const pagesData = await pagesResult.json() as any;
+      const mostVisitedPages = pagesData.data.map((row: any) => ({
         pageUrl: row.pageUrl,
         count: row.count,
       }));
@@ -382,7 +390,8 @@ export class ClickStackSessionService {
           query: totalSessionsQuery,
           format: 'JSON'
         });
-      const totalSessions = totalSessionsResult.json().data[0]?.total_sessions || 0;
+      const totalSessionsData = await totalSessionsResult.json() as any;
+      const totalSessions = (totalSessionsData.data[0] as any)?.total_sessions || 0;
 
       // Get active sessions (sessions in last hour)
       const activeSessionsQuery = `
@@ -396,7 +405,8 @@ export class ClickStackSessionService {
           query: activeSessionsQuery,
           format: 'JSON'
         });
-      const activeSessions = activeSessionsResult.json().data[0]?.active_sessions || 0;
+      const activeSessionsData = await activeSessionsResult.json() as any;
+      const activeSessions = (activeSessionsData.data[0] as any)?.active_sessions || 0;
 
       // Get average session duration
       const avgDurationQuery = `
@@ -409,7 +419,8 @@ export class ClickStackSessionService {
           query: avgDurationQuery,
           format: 'JSON'
         });
-      const avgSessionDuration = avgDurationResult.json().data[0]?.avg_duration || 0;
+      const avgDurationData = await avgDurationResult.json() as any;
+      const avgSessionDuration = (avgDurationData.data[0] as any)?.avg_duration || 0;
 
       // Get top pages
       const topPagesQuery = `
@@ -427,7 +438,8 @@ export class ClickStackSessionService {
           query: topPagesQuery,
           format: 'JSON'
         });
-      const topPages = topPagesResult.json().data.map(row => ({
+      const topPagesData = await topPagesResult.json() as any;
+      const topPages = topPagesData.data.map((row: any) => ({
         pageUrl: row.pageUrl,
         count: row.count,
       }));
@@ -448,7 +460,8 @@ export class ClickStackSessionService {
           query: topUsersQuery,
           format: 'JSON'
         });
-      const topUsers = topUsersResult.json().data.map(row => ({
+      const topUsersData = await topUsersResult.json() as any;
+      const topUsers = topUsersData.data.map((row: any) => ({
         userId: row.userId,
         count: row.count,
       }));
@@ -468,7 +481,8 @@ export class ClickStackSessionService {
           query: trendsQuery,
           format: 'JSON'
         });
-      const sessionTrends = trendsResult.json().data.map(row => ({
+      const trendsData = await trendsResult.json() as any;
+      const sessionTrends = trendsData.data.map((row: any) => ({
         timestamp: row.hour,
         count: row.count,
       }));

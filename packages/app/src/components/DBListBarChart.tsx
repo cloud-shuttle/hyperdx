@@ -201,7 +201,7 @@ export default function DBListBarChart({
   );
 
   const columns = useMemo(() => {
-    const rows = data?.data ?? [];
+    const rows = Array.isArray(data) ? data : [];
     if (rows.length === 0) {
       return [];
     }
@@ -244,13 +244,13 @@ export default function DBListBarChart({
         )}
       </Box>
     </div>
-  ) : data?.data.length === 0 ? (
+  ) : (Array.isArray(data) && data.length === 0) ? (
     <div className="d-flex h-100 w-100 align-items-center justify-content-center text-muted">
       No data found within time range.
     </div>
   ) : (
     <ListBar
-      data={data?.data ?? []}
+      data={Array.isArray(data) ? data : []}
       columns={columns}
       getRowSearchLink={getRowSearchLink}
       hoverCardPosition={hoverCardPosition}

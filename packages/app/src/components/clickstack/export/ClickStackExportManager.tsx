@@ -8,11 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
+import { clickStackExportService } from './ClickStackExportService';
 import { 
   Download, 
   FileText, 
   FileSpreadsheet, 
-  FilePdf, 
   FileJson, 
   Database, 
   Settings, 
@@ -20,7 +20,6 @@ import {
   Clock, 
   Filter,
   Search,
-  Template,
   Code,
   AlertTriangle,
   CheckCircle,
@@ -127,7 +126,7 @@ export const ClickStackExportManager: React.FC<ClickStackExportManagerProps> = (
     switch (format) {
       case 'json': return <FileJson className="h-4 w-4" />;
       case 'csv': return <FileText className="h-4 w-4" />;
-      case 'pdf': return <FilePdf className="h-4 w-4" />;
+      case 'pdf': return <FileText className="h-4 w-4" />;
       case 'excel': return <FileSpreadsheet className="h-4 w-4" />;
       default: return <FileText className="h-4 w-4" />;
     }
@@ -186,12 +185,12 @@ export const ClickStackExportManager: React.FC<ClickStackExportManagerProps> = (
       setExportProgress(100);
 
       // Download the file
-      clickStackExportService.downloadExport(result);
+      clickStackExportService.downloadExport(result.jobId);
 
       // Update job status
       setExportJobs(prev => prev.map(j => 
         j.id === jobId 
-          ? { ...j, status: 'completed', progress: 100, filename: result.filename }
+          ? { ...j, status: 'completed', progress: 100, filename: `export-${templateId}-${Date.now()}.${exportFormat}` }
           : j
       ));
 
@@ -255,12 +254,12 @@ export const ClickStackExportManager: React.FC<ClickStackExportManagerProps> = (
       setExportProgress(100);
 
       // Download the file
-      clickStackExportService.downloadExport(result);
+      clickStackExportService.downloadExport(result.jobId);
 
       // Update job status
       setExportJobs(prev => prev.map(j => 
         j.id === jobId 
-          ? { ...j, status: 'completed', progress: 100, filename: result.filename }
+          ? { ...j, status: 'completed', progress: 100, filename: `export-custom-${Date.now()}.${exportFormat}` }
           : j
       ));
 

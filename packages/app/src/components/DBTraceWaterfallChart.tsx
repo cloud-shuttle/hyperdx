@@ -10,7 +10,7 @@ import {
 import { Text } from '@mantine/core';
 
 import { ContactSupportText } from '@/components/ContactSupportText';
-import useOffsetPaginatedQuery from '@/hooks/useOffsetPaginatedQuery';
+import { useOffsetPaginatedQuery } from '@/hooks/useOffsetPaginatedQuery';
 import useRowWhere from '@/hooks/useRowWhere';
 import {
   getDisplayedTimestampValueExpression,
@@ -213,15 +213,15 @@ export function useEventsAroundFocus({
       enabled,
     });
   isFetching = isFetching || isBeforeSpanFetching || isAfterSpanFetching;
-  const meta = beforeSpanData?.meta ?? afterSpanData?.meta;
+  const meta = (beforeSpanData as any)?.meta ?? (afterSpanData as any)?.meta ?? [];
   const rowWhere = useRowWhere({ meta, aliasMap: alias });
   const rows = useMemo(() => {
     // Sometimes meta has not loaded yet
     // DO NOT REMOVE, useRowWhere will error if no meta
     if (!meta || meta.length === 0) return [];
     return [
-      ...(beforeSpanData?.data ?? []),
-      ...(afterSpanData?.data ?? []),
+      ...((beforeSpanData as any)?.data ?? []),
+      ...((afterSpanData as any)?.data ?? []),
     ].map(cd => {
       const { SpanAttributes, ...rowData } = cd;
       return {

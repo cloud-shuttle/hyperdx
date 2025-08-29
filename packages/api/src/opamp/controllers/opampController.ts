@@ -318,7 +318,7 @@ export class OpampController {
           'apiKey',
           'collectorAuthenticationEnforced',
         ]);
-        const otelCollectorConfig = buildOtelCollectorConfig(teams);
+        const otelCollectorConfig = buildOtelCollectorConfig(teams as unknown as ITeam[]);
 
         if (config.IS_DEV) {
           console.log(JSON.stringify(otelCollectorConfig, null, 2));

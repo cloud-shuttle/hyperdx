@@ -34,7 +34,7 @@ router.get('/', async (req, res, next) => {
       throw new Error(`User has no id`);
     }
 
-    const team = await getTeam(teamId, [
+    const team = await getTeam(teamId.toString(), [
       '_id',
       'allowedAuthMethods',
       'apiKey',
@@ -59,7 +59,7 @@ router.patch('/apiKey', async (req, res, next) => {
     if (teamId == null) {
       throw new Error(`User ${req.user?._id} not associated with a team`);
     }
-    const team = await rotateTeamApiKey(teamId);
+    const team = await rotateTeamApiKey(teamId.toString());
     res.json({ newApiKey: team?.apiKey });
   } catch (e) {
     next(e);
@@ -80,7 +80,7 @@ router.patch(
         throw new Error(`User ${req.user?._id} not associated with a team`);
       }
       const { name } = req.body;
-      const team = await setTeamName(teamId, name);
+      const team = await setTeamName(teamId.toString(), name);
       res.json({ name: team?.name });
     } catch (e) {
       next(e);
@@ -117,7 +117,7 @@ router.patch(
         return res.json({});
       }
 
-      const team = await updateTeamClickhouseSettings(teamId, settings);
+      const team = await updateTeamClickhouseSettings(teamId.toString(), settings);
 
       res.json({
         ...(searchRowLimit !== undefined && {
@@ -248,16 +248,16 @@ router.get('/members', async (req, res, next) => {
     if (userId == null) {
       throw new Error(`User has no id`);
     }
-    const teamUsers = await findUsersByTeam(teamId);
+    const teamUsers = await findUsersByTeam(teamId.toString());
     res.json({
       data: teamUsers.map(user => ({
-        ...pick(user.toJSON({ virtuals: true }), [
+        ...pick(user, [
           '_id',
           'email',
           'name',
           'hasPasswordAuth',
         ]),
-        isCurrentUser: user._id.equals(userId),
+        isCurrentUser: user.id === userId.toString(),
       })),
     });
   } catch (e) {
@@ -280,7 +280,7 @@ router.delete(
         throw new Error(`User ${req.user?._id} not associated with a team`);
       }
 
-      await deleteTeamMember(teamId, id);
+      await deleteTeamMember(teamId.toString(), id);
 
       res.json({ message: 'User deleted' });
     } catch (e) {
@@ -295,7 +295,7 @@ router.get('/tags', async (req, res, next) => {
     if (teamId == null) {
       throw new Error(`User ${req.user?._id} not associated with a team`);
     }
-    const tags = await getTags(teamId);
+    const tags = await getTags(teamId.toString());
     return res.json({ data: tags });
   } catch (e) {
     next(e);

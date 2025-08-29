@@ -16,42 +16,42 @@ import { Team } from './Team';
 @Index(['createdAt'])
 export class SavedSearch {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
 
   @Column({ type: 'uuid' })
-  teamId: string;
+  teamId!: string;
 
   @ManyToOne(() => Team, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'teamId' })
-  team: Team;
+  team!: Team;
 
   @Column({ type: 'varchar', length: 50, default: 'logs' })
-  source: 'logs' | 'traces' | 'metrics';
+  source!: 'logs' | 'traces' | 'metrics';
 
   @Column({ type: 'text' })
-  query: string;
+  query!: string;
 
   @Column({ type: 'jsonb', default: {} })
-  filters: Record<string, any>;
+  filters!: Record<string, any>;
 
   @Column({ type: 'boolean', default: false })
-  isDefault: boolean;
+  isDefault!: boolean;
 
   @Column({ type: 'boolean', default: true })
-  isPublic: boolean;
+  isPublic!: boolean;
 
   @Column({ type: 'uuid', nullable: true })
   createdById?: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

@@ -7,7 +7,7 @@ import {
 import { Box, Code, Text } from '@mantine/core';
 
 import { Table } from '@/HDXMultiSeriesTableChart';
-import useOffsetPaginatedQuery from '@/hooks/useOffsetPaginatedQuery';
+import { useOffsetPaginatedQuery } from '@/hooks/useOffsetPaginatedQuery';
 import { omit, useIntersectionObserver } from '@/utils';
 
 import { SQLPreview } from './ChartSQLPreview';
@@ -45,7 +45,7 @@ export default function DBTableChart({
   const { observerRef: fetchMoreRef } = useIntersectionObserver(fetchNextPage);
 
   const columns = useMemo(() => {
-    const rows = data?.data ?? [];
+    const rows = (data as any)?.data ?? [];
     if (rows.length === 0) {
       return [];
     }
@@ -88,13 +88,13 @@ export default function DBTableChart({
         )}
       </Box>
     </div>
-  ) : data?.data.length === 0 ? (
+  ) : (data as any)?.data?.length === 0 ? (
     <div className="d-flex h-100 w-100 align-items-center justify-content-center text-muted">
       No data found within time range.
     </div>
   ) : (
     <Table
-      data={data?.data ?? []}
+      data={(data as any)?.data ?? []}
       columns={columns}
       getRowSearchLink={getRowSearchLink}
       tableBottom={

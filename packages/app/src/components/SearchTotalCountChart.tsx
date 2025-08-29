@@ -29,7 +29,8 @@ export function useSearchTotalCount(
   });
 
   const totalCount = useMemo(() => {
-    return totalCountData?.data?.reduce(
+    const data = Array.isArray(totalCountData) ? totalCountData : [];
+    return (data as any[]).reduce(
       (p: number, v: any) => p + Number.parseInt(v['count()']),
       0,
     );

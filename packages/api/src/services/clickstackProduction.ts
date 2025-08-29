@@ -228,7 +228,7 @@ export class ClickStackProductionService {
     try {
       const startTime = Date.now();
       await client.query({
-        query: { query: 'SELECT 1' },
+        query: 'SELECT 1',
         format: 'JSON'
       });
       const responseTime = Date.now() - startTime;

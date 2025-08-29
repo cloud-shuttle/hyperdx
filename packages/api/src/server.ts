@@ -4,7 +4,7 @@ import compression from 'compression';
 import session from 'express-session';
 import cors from 'cors';
 import { connectPostgres, disconnectPostgres } from '@/database/postgres';
-import { connectDB, mongooseConnection } from '@/models';
+import { databaseManager } from '@/database';
 import * as config from '@/config';
 import logger from '@/utils/logger';
 import gracefulShutdown from 'http-graceful-shutdown';
@@ -50,18 +50,11 @@ gracefulShutdown(server, {
   onShutdown: async () => {
     logger.info('🔄 Shutting down gracefully...');
     
-    // Close PostgreSQL connection
+    // Close database connection
     try {
-      await disconnectPostgres();
+      await databaseManager.disconnect();
     } catch (error) {
-      logger.error('Error closing PostgreSQL connection:', error);
-    }
-    
-    // Close MongoDB connection (for backward compatibility)
-    try {
-      await mongooseConnection.close(false);
-    } catch (error) {
-      logger.error('Error closing MongoDB connection:', error);
+      logger.error('Error closing database connection:', error);
     }
     
     logger.info('✅ Graceful shutdown completed');
@@ -75,13 +68,8 @@ gracefulShutdown(server, {
 // Start server
 const startServer = async () => {
   try {
-    // Connect to PostgreSQL
-    await connectPostgres();
-    
-    // Connect to MongoDB (for backward compatibility during migration)
-    if (config.MONGO_URI) {
-      await connectDB();
-    }
+    // Connect to database
+    await databaseManager.connect();
     
     const port = config.PORT || 3001;
     server.listen(port, () => {
@@ -96,3 +84,5 @@ const startServer = async () => {
 };
 
 startServer();
+
+export default app;

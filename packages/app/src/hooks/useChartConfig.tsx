@@ -45,13 +45,15 @@ export function useQueriedChartConfig(
         query = await renderMTViewConfig();
       }
 
-      return clickhouseClient.queryChartConfig({
+      const result = await clickhouseClient.queryChartConfig({
         config,
         metadata: getMetadata(),
         opts: {
           abort_signal: signal,
         },
       });
+      const jsonResult = await result.json();
+      return { data: jsonResult.data };
     },
     retry: 1,
     refetchOnWindowFocus: false,

@@ -16,39 +16,39 @@ import { Team } from './Team';
 @Index(['createdAt'])
 export class Source {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  name!: string;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
 
   @Column({ type: 'uuid' })
-  teamId: string;
+  teamId!: string;
 
   @ManyToOne(() => Team, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'teamId' })
-  team: Team;
+  team!: Team;
 
   @Column({ type: 'varchar', length: 50, default: 'logs' })
-  type: 'logs' | 'traces' | 'metrics';
+  type!: 'logs' | 'traces' | 'metrics';
 
   @Column({ type: 'jsonb' })
-  config: Record<string, any>;
+  config!: Record<string, any>;
 
   @Column({ type: 'boolean', default: true })
-  isEnabled: boolean;
+  isEnabled!: boolean;
 
   @Column({ type: 'timestamp', nullable: true })
   lastIngestionAt?: Date;
 
   @Column({ type: 'integer', default: 0 })
-  ingestionCount: number;
+  ingestionCount!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

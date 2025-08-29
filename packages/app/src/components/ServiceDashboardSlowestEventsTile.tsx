@@ -79,7 +79,7 @@ export default function SlowestEventsTile({
     },
   );
 
-  const p95 = data?.data?.[0]?.['p95'];
+  const p95 = Array.isArray(data) && data[0] ? data[0]['p95'] : undefined;
   const roundedP95 = Math.round(p95 ?? 0);
 
   return (
@@ -123,7 +123,7 @@ export default function SlowestEventsTile({
             )}
           </Box>
         </div>
-      ) : data?.data.length === 0 ? (
+      ) : (Array.isArray(data) && data.length === 0) ? (
         <div className="d-flex h-100 w-100 align-items-center justify-content-center text-muted">
           No data found within time range.
         </div>

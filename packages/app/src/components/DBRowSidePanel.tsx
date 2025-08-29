@@ -158,7 +158,7 @@ const DBRowSidePanel = ({
 
   const displayedTab = tab;
 
-  const normalizedRow = rowData?.data?.[0];
+  const normalizedRow = Array.isArray(rowData) && rowData[0] ? rowData[0] : undefined;
   const timestampValue = normalizedRow?.['__hdx_timestamp'];
 
   // TODO: Improve parsing

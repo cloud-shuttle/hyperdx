@@ -15,10 +15,10 @@ import { Team } from './Team';
 @Index(['teamId'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  email: string;
+  email!: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   password?: string;
@@ -27,20 +27,20 @@ export class User {
   name?: string;
 
   @Column({ type: 'uuid' })
-  teamId: string;
+  teamId!: string;
 
   @ManyToOne(() => Team, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'teamId' })
-  team: Team;
+  team!: Team;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   avatar?: string;
 
   @Column({ type: 'boolean', default: false })
-  isAdmin: boolean;
+  isAdmin!: boolean;
 
   @Column({ type: 'boolean', default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
@@ -49,10 +49,10 @@ export class User {
   preferences?: Record<string, any>;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // Helper methods
   toJSON() {

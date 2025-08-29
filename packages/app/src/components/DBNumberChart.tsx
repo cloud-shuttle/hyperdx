@@ -27,7 +27,7 @@ export default function DBNumberChart({
   );
 
   const number = formatNumber(
-    (Object.values(data?.data?.[0] ?? {})?.[0] ?? Number.NaN) as number,
+    (Array.isArray(data) && data[0] ? Object.values(data[0])?.[0] ?? Number.NaN : Number.NaN) as number,
     config.numberFormat,
   );
 
@@ -62,7 +62,7 @@ export default function DBNumberChart({
         )}
       </Box>
     </div>
-  ) : data?.data.length === 0 ? (
+  ) : (Array.isArray(data) && data.length === 0) ? (
     <div className="d-flex h-100 w-100 align-items-center justify-content-center text-muted">
       No data found within time range.
     </div>

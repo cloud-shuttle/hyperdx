@@ -30,12 +30,12 @@ export function RowOverviewPanel({
   const { onPropertyAddClick, generateSearchUrl } =
     useContext(RowSidePanelContext);
 
-  const jsonColumns = getJSONColumnNames(data?.meta);
+  const jsonColumns = getJSONColumnNames([]);
 
   const eventAttributesExpr = source.eventAttributesExpression;
 
   const firstRow = useMemo(() => {
-    const firstRow = { ...(data?.data?.[0] ?? {}) };
+    const firstRow = { ...(Array.isArray(data) && data[0] ? data[0] : {}) };
     if (!firstRow) {
       return null;
     }

@@ -110,7 +110,7 @@ export const useFetchMetricResourceAttrs = ({
       `;
 
       const result = (await clickhouseClient
-        .query<'JSON'>({
+        .query({
           query: sql.sql,
           query_params: sql.params,
           format: 'JSON',

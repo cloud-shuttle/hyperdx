@@ -17,21 +17,16 @@ import {
   Zap,
   BarChart3,
   Cpu,
-  Memory,
   HardDrive,
   Network,
   Target,
   Clock,
   Eye,
-  BrainCircuit,
   Activity,
   AlertCircle,
   CheckCircle,
   XCircle,
   Info,
-  Warning,
-  Error,
-  Success,
   Users,
   Lock,
   Key,
@@ -42,8 +37,6 @@ import {
   Monitor,
   Wrench,
   Lightbulb,
-  Target,
-  Gauge,
   TrendingDown,
   Minus,
   Plus,
@@ -54,6 +47,8 @@ import {
   Pause,
   RotateCcw
 } from 'lucide-react';
+
+import { clickStackAdvancedService } from './ClickStackAdvancedService';
 
 // API calls will be made directly to /api/clickstack/advanced endpoints
 
@@ -124,7 +119,7 @@ export const ClickStackAdvancedDashboard: React.FC<ClickStackAdvancedDashboardPr
     switch (severity) {
       case 'critical': return <XCircle className="h-4 w-4" />;
       case 'high': return <AlertTriangle className="h-4 w-4" />;
-      case 'medium': return <Warning className="h-4 w-4" />;
+      case 'medium': return <AlertTriangle className="h-4 w-4" />;
       case 'low': return <Info className="h-4 w-4" />;
       default: return <Info className="h-4 w-4" />;
     }
@@ -380,7 +375,7 @@ export const ClickStackAdvancedDashboard: React.FC<ClickStackAdvancedDashboardPr
                     <div key={prediction.id} className="border rounded-lg p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center space-x-3">
-                          <BrainCircuit className="h-5 w-5 text-blue-600" />
+                          <Brain className="h-5 w-5 text-blue-600" />
                           <div>
                             <h4 className="text-sm font-medium">
                               {prediction.service} {prediction.metric} Prediction

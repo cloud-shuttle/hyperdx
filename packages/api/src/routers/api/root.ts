@@ -98,13 +98,13 @@ router.post(
             name: `${email}'s Team`,
             collectorAuthenticationEnforced: true,
           });
-          user.team = team._id;
+          user.team = team.id;
           user.name = email;
           await user.save();
 
           // Set up default connections and sources for this new team
           try {
-            await setupTeamDefaults(team._id.toString());
+            await setupTeamDefaults(team.id);
           } catch (error) {
             logger.error(
               `Failed to setup team defaults: ${serializeError(error)}`,

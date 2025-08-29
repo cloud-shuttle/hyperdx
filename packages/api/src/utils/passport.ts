@@ -17,7 +17,7 @@ passport.deserializeUser(function (id: string, done) {
       if (user == null) {
         return done(new Error('User not found'));
       }
-      done(null, user as UserDocument);
+      done(null, user);
     })
     .catch(done);
 });
